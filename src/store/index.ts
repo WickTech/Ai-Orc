@@ -1,6 +1,12 @@
 import { create } from "zustand"
 import type { Tool, TerminalState, TerminalStatus } from "@/types"
 
+const DEFAULT_TOOLS: Tool[] = [
+  { id: "claude", label: "Claude Code", command: "claude", builtin: true },
+  { id: "gemini", label: "Gemini CLI", command: "gemini", builtin: true },
+  { id: "codex", label: "Codex CLI", command: "codex", builtin: true },
+]
+
 interface AppStore {
   tools: Tool[]
   terminals: TerminalState[]
@@ -13,7 +19,7 @@ interface AppStore {
 }
 
 export const useStore = create<AppStore>((set) => ({
-  tools: [],
+  tools: DEFAULT_TOOLS,
   terminals: [],
   activeTerminalId: null,
   setTools: (tools) => set({ tools }),

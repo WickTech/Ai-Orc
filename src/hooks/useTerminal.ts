@@ -18,7 +18,6 @@ export function useTerminal(id: string, containerRef: RefObject<HTMLDivElement |
     async function init() {
       const { Terminal } = await import("@xterm/xterm")
       const { FitAddon } = await import("@xterm/addon-fit")
-      await import("@xterm/xterm/css/xterm.css")
 
       term = new Terminal({
         theme: { background: "#0d1117", foreground: "#c9d1d9", cursor: "#58a6ff", selectionBackground: "#264f78" },
@@ -43,7 +42,7 @@ export function useTerminal(id: string, containerRef: RefObject<HTMLDivElement |
       ro.observe(containerRef.current!)
     }
 
-    init()
+    init().catch((err) => console.error("[useTerminal] init failed:", err))
 
     const unsubscribe = subscribe((msg: WsMessage) => {
       if (msg.id !== id) return

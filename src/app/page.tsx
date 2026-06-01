@@ -1,30 +1,19 @@
 "use client"
 
 import { useEffect } from "react"
+import Link from "next/link"
 import { useStore } from "@/store"
-import { useWebSocket } from "@/providers/WebSocketProvider"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Terminal, Activity, Cpu } from "lucide-react"
+import { Terminal, Activity, Cpu, Zap } from "lucide-react"
 import type { Tool } from "@/types"
 
 function ToolLaunchCard({ tool }: { tool: Tool }) {
-  const { addTerminal, terminals } = useStore()
-  const { send } = useWebSocket()
-  const router = useRouter()
-
+  const { terminals } = useStore()
   const running = terminals.filter((t) => t.toolId === tool.id && t.status === "running")
-
-  function launch() {
-    const id = `${tool.id}-${Date.now()}`
-    addTerminal({ id, toolId: tool.id, label: tool.label, status: "running" })
-    send({ type: "terminal:spawn", id, command: tool.command, args: tool.args })
-    router.push("/terminals")
-  }
+  const id = `${tool.id}-${Date.now()}`
+  const href = `/terminals?id=${id}&command=${encodeURIComponent(tool.command)}&label=${encodeURIComponent(tool.label)}&toolId=${tool.id}`
 
   return (
-    <div className="p-5 rounded-xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] transition-all group flex flex-col gap-4">
+    <div className="p-5 rounded-xl border border-white/10 bg-white/[0.02] flex flex-col gap-4">
       <div className="flex items-start justify-between">
         <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
           <Cpu className="h-5 w-5 text-blue-400" />
@@ -37,18 +26,23 @@ function ToolLaunchCard({ tool }: { tool: Tool }) {
             </span>
           )}
           {tool.builtin && (
-            <Badge variant="outline" className="text-xs border-white/15 text-white/30">built-in</Badge>
+            <span className="text-[10px] border border-white/15 text-white/30 rounded px-1.5 py-0.5">built-in</span>
           )}
         </div>
       </div>
+
       <div>
         <h3 className="font-semibold text-white/90 text-base">{tool.label}</h3>
         <p className="text-sm text-white/40 font-mono mt-1">{tool.command}</p>
       </div>
-      <Button size="sm" onClick={launch} className="gap-2 bg-blue-600 hover:bg-blue-500 text-white w-full">
+
+      <Link
+        href={href}
+        className="flex items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-sm font-medium py-2 px-3 transition-colors"
+      >
         <Terminal className="h-3.5 w-3.5" />
         Launch Terminal
-      </Button>
+      </Link>
     </div>
   )
 }
@@ -59,9 +53,11 @@ export default function DashboardPage() {
   useEffect(() => {
     fetch("/api/config")
       .then((r) => r.json())
-      .then((d) => { if (d.tools) setTools(d.tools) })
+      .then((d) => {
+        if (Array.isArray(d.tools) && d.tools.length > 0) setTools(d.tools)
+      })
       .catch(() => {})
-  }, [setTools])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const running = terminals.filter((t) => t.status === "running").length
 
@@ -83,8 +79,8 @@ export default function DashboardPage() {
 
         {tools.length === 0 ? (
           <div className="text-center py-16 text-white/30">
-            <Cpu className="h-8 w-8 mx-auto mb-3 opacity-40" />
-            <p>Loading tools…</p>
+            <Zap className="h-8 w-8 mx-auto mb-3 opacity-40" />
+            <p>No tools configured. Go to Registry to add one.</p>
           </div>
         ) : (
           <div>

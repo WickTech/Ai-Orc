@@ -3,7 +3,6 @@
 import { useStore } from "@/store"
 import { useWebSocket } from "@/providers/WebSocketProvider"
 import { TerminalPanel } from "./TerminalPanel"
-import { Button } from "@/components/ui/button"
 import { X } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -58,13 +57,13 @@ export function TerminalGrid() {
         ))}
       </div>
 
-      <div className="flex-1 p-2 overflow-hidden">
+      <div className="flex-1 p-2 overflow-hidden relative">
         {terminals.map((t) => {
           const tool = tools.find((tl) => tl.id === t.toolId) ?? { command: t.label, args: [] }
           return (
             <div
               key={t.id}
-              className={cn("h-full", t.id !== active?.id && "hidden")}
+              className={cn("absolute inset-2", t.id !== active?.id && "hidden")}
             >
               <TerminalPanel terminal={t} tool={tool} />
             </div>
