@@ -43,6 +43,13 @@ next-env.d.ts
 # ai-orc local data (never commit)
 ~/.ai-orc/
 
+# Claude Code / AI agent workspace files (local dev only)
+AGENTS.md
+CLAUDE.md
+.claude/
+.agents/
+.codex/
+
 # env files — keep .env.example, ignore real .env files
 .env
 .env.local
