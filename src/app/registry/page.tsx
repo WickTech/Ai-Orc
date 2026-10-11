@@ -9,13 +9,13 @@ import type { Tool, RegistryAddResult } from "@/types"
 export default function RegistryPage() {
   const [tools, setTools] = useState<Tool[]>([])
 
-  async function load() {
-    const res = await fetch("/api/registry")
-    const data = await res.json()
-    if (Array.isArray(data)) setTools(data)
-  }
-
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    let cancelled = false
+    fetch("/api/registry")
+      .then((res) => res.json())
+      .then((data) => { if (!cancelled && Array.isArray(data)) setTools(data) })
+    return () => { cancelled = true }
+  }, [])
 
   function handleAdded(result: RegistryAddResult) {
     const newTool: Tool = {

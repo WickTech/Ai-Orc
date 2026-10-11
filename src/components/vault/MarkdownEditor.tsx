@@ -2,6 +2,8 @@
 
 import { useState, useCallback, useEffect } from "react"
 import dynamic from "next/dynamic"
+import rehypeRaw from "rehype-raw"
+import type { PluggableList } from "unified"
 import { Button } from "@/components/ui/button"
 import { Save, Loader2 } from "lucide-react"
 
@@ -14,6 +16,19 @@ const MDEditor = dynamic(() => import("@uiw/react-md-editor"), {
   ),
 })
 
+// @uiw/react-md-editor's live preview defaults to allowing raw HTML in
+// notes (via a hardcoded rehype-raw, no sanitizer) — a note containing
+// <img onerror=...> or similar renders live, same-origin, with no click
+// needed. Vault notes can come from anywhere (synced/shared/web-clipped),
+// so this strips rehype-raw from the preview pipeline entirely: raw HTML
+// then falls through to plain escaped text instead of being parsed into
+// real elements. Verified (renderToStaticMarkup) that this converts a
+// malicious payload into literal escaped text rather than a live element.
+function stripRawHtml(type: "rehype" | "remark", plugins: PluggableList): PluggableList {
+  if (type !== "rehype") return plugins
+  return plugins.filter((p) => (Array.isArray(p) ? p[0] : p) !== rehypeRaw)
+}
+
 interface MarkdownEditorProps {
   filePath: string
   initialContent: string
@@ -24,11 +39,13 @@ export function MarkdownEditor({ filePath, initialContent, onSave }: MarkdownEdi
   const [value, setValue] = useState(initialContent)
   const [saving, setSaving] = useState(false)
   const [dirty, setDirty] = useState(false)
+  const [loaded, setLoaded] = useState({ filePath, initialContent })
 
-  useEffect(() => {
+  if (loaded.filePath !== filePath || loaded.initialContent !== initialContent) {
+    setLoaded({ filePath, initialContent })
     setValue(initialContent)
     setDirty(false)
-  }, [initialContent, filePath])
+  }
 
   const handleChange = useCallback((val: string | undefined) => {
     setValue(val ?? "")
@@ -83,6 +100,7 @@ export function MarkdownEditor({ filePath, initialContent, onSave }: MarkdownEdi
           onChange={handleChange}
           height="100%"
           visibleDragbar={false}
+          previewOptions={{ pluginsFilter: stripRawHtml }}
           style={{ height: "100%", background: "transparent" }}
         />
       </div>

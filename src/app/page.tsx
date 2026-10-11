@@ -9,8 +9,7 @@ import type { Tool } from "@/types"
 function ToolLaunchCard({ tool }: { tool: Tool }) {
   const { terminals } = useStore()
   const running = terminals.filter((t) => t.toolId === tool.id && t.status === "running")
-  const id = `${tool.id}-${Date.now()}`
-  const href = `/terminals?id=${id}&command=${encodeURIComponent(tool.command)}&label=${encodeURIComponent(tool.label)}&toolId=${tool.id}`
+  const href = `/terminals?label=${encodeURIComponent(tool.label)}&toolId=${tool.id}`
 
   return (
     <div className="p-5 rounded-xl border border-white/10 bg-white/[0.02] flex flex-col gap-4">

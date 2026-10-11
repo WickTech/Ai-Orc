@@ -53,7 +53,7 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-> **Note for WSL users:** The server binds to `0.0.0.0:3000`. Access it at `http://localhost:3000` from your Windows browser.
+> **Note for WSL users:** The server binds to `127.0.0.1:3000` by default — WSL2 forwards localhost automatically, so `http://localhost:3000` from your Windows browser just works. There is no auth on the terminal/vault APIs, so only set `HOST=0.0.0.0` if you understand that exposes process-spawning to your whole LAN.
 
 ### First-time setup
 

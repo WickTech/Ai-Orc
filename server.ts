@@ -5,6 +5,7 @@ import { WebSocketServer, WebSocket } from "ws"
 import { handleWsMessage, cleanupClientPtys } from "./src/lib/pty"
 import { startVaultWatcher } from "./src/lib/vault"
 import { getConfig } from "./src/lib/db"
+import { allowedOrigins } from "./src/lib/allowedOrigins"
 import type { WsMessage } from "./src/types"
 
 process.on("uncaughtException", (err) => {
@@ -16,10 +17,20 @@ process.on("unhandledRejection", (reason) => {
 })
 
 const dev = process.env.NODE_ENV !== "production"
-const hostname = "0.0.0.0"
+// Default to loopback only — WSL2 forwards localhost automatically, so
+// 0.0.0.0 isn't needed for the documented WSL use case and previously
+// exposed the unauthenticated terminal-spawn WebSocket to the whole LAN.
+// Set HOST=0.0.0.0 explicitly to opt into LAN exposure.
+const hostname = process.env.HOST ?? "127.0.0.1"
 const port = parseInt(process.env.PORT ?? "3000", 10)
 
 const clients = new Set<WebSocket>()
+
+// Browsers don't enforce same-origin on WebSocket handshakes, so binding to
+// loopback alone doesn't stop a malicious webpage from opening ws://127.0.0.1
+// directly and driving unauthenticated terminal spawn. Require the handshake's
+// Origin to be this app's own served origin.
+const ALLOWED_WS_ORIGINS = allowedOrigins(port, hostname)
 
 export function broadcast(msg: WsMessage): void {
   const data = JSON.stringify(msg)
@@ -58,7 +69,8 @@ app
 
     httpServer.on("upgrade", (request, socket, head) => {
       const { pathname } = parse(request.url!)
-      if (pathname === "/ws") {
+      const origin = request.headers.origin
+      if (pathname === "/ws" && origin && ALLOWED_WS_ORIGINS.has(origin)) {
         wss.handleUpgrade(request, socket, head, (ws) => wss.emit("connection", ws, request))
       } else {
         socket.destroy()
@@ -67,7 +79,9 @@ app
 
     wss.on("connection", (ws: WebSocket) => {
       clients.add(ws)
-      ws.on("message", (raw) => handleWsMessage(ws, raw.toString()))
+      ws.on("message", (raw) => {
+        handleWsMessage(ws, raw.toString()).catch((err) => console.error("[AI-Orc] WS message error:", err))
+      })
       ws.on("close", () => {
         clients.delete(ws)
         cleanupClientPtys(ws)
