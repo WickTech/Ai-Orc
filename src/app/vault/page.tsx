@@ -27,7 +27,13 @@ export default function VaultPage() {
     }
   }, [])
 
-  useEffect(() => { loadTree() }, [loadTree])
+  useEffect(() => {
+    let cancelled = false
+    fetch("/api/vault/tree")
+      .then((res) => res.json())
+      .then((data) => { if (!cancelled && Array.isArray(data)) setFiles(data) })
+    return () => { cancelled = true }
+  }, [])
 
   useEffect(() => {
     const unsub = subscribe((msg: WsMessage) => {
