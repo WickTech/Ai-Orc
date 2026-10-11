@@ -28,7 +28,7 @@ export function TerminalPanel({ terminal, tool }: TerminalPanelProps) {
   function handleRestart() {
     send({ type: "terminal:kill", id: terminal.id })
     updateTerminalStatus(terminal.id, "running")
-    send({ type: "terminal:spawn", id: terminal.id, command: tool.command, args: tool.args })
+    send({ type: "terminal:spawn", id: terminal.id, toolId: terminal.toolId })
   }
 
   const statusColor =
