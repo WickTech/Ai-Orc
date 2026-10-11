@@ -19,7 +19,10 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
   const { updateTerminalStatus } = useStore()
 
   useEffect(() => {
-    const ws = new WebSocket(`ws://${window.location.host}/ws`)
+    // Match the page scheme: an unencrypted socket URL is blocked as mixed content
+    // when the app is served over HTTPS (e.g. behind a TLS reverse proxy).
+    const scheme = window.location.protocol === "https:" ? "wss" : "ws"
+    const ws = new WebSocket(`${scheme}://${window.location.host}/ws`)
     wsRef.current = ws
 
     ws.onmessage = (event) => {
