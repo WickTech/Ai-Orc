@@ -11,14 +11,14 @@ import type { Tool } from "@/types"
 
 export function ToolCard({ tool, onRemoved }: { tool: Tool; onRemoved?: (id: string) => void }) {
   const [removing, setRemoving] = useState(false)
-  const { addTerminal, updateTerminalStatus } = useStore()
+  const { addTerminal } = useStore()
   const { send } = useWebSocket()
   const router = useRouter()
 
   function launch() {
     const id = `${tool.id}-${Date.now()}`
     addTerminal({ id, toolId: tool.id, label: tool.label, status: "running" })
-    send({ type: "terminal:spawn", id, command: tool.command, args: tool.args })
+    send({ type: "terminal:spawn", id, toolId: tool.id })
     router.push("/terminals")
   }
 

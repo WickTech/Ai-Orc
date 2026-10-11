@@ -13,14 +13,13 @@ function SpawnFromUrl() {
   const { send } = useWebSocket()
 
   useEffect(() => {
-    const id = params.get("id")
-    const command = params.get("command")
     const label = params.get("label")
-    const toolId = params.get("toolId") ?? id?.replace(/-\d+$/, "") ?? ""
+    const toolId = params.get("toolId") ?? params.get("id")?.replace(/-\d+$/, "") ?? ""
+    const id = params.get("id") ?? (toolId ? `${toolId}-${Date.now()}` : null)
 
-    if (id && command && label) {
+    if (id && toolId && label) {
       addTerminal({ id, toolId, label, status: "running" })
-      send({ type: "terminal:spawn", id, command, args: [] })
+      send({ type: "terminal:spawn", id, toolId })
       router.replace("/terminals")
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps

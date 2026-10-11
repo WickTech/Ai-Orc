@@ -31,6 +31,7 @@ export interface WsMessage {
   type: WsMessageType
   id?: string
   data?: string
+  toolId?: string
   command?: string
   args?: string[]
   cols?: number

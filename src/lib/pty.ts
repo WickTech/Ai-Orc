@@ -1,6 +1,7 @@
 import * as pty from "node-pty"
 import type { WebSocket } from "ws"
 import type { WsMessage } from "@/types"
+import { getTools } from "@/lib/db"
 
 interface PtyEntry {
   process: pty.IPty
@@ -58,7 +59,7 @@ export function killPty(id: string): void {
   }
 }
 
-export function handleWsMessage(ws: WebSocket, raw: string): void {
+export async function handleWsMessage(ws: WebSocket, raw: string): Promise<void> {
   let msg: WsMessage
   try {
     msg = JSON.parse(raw)
@@ -67,9 +68,18 @@ export function handleWsMessage(ws: WebSocket, raw: string): void {
   }
 
   switch (msg.type) {
-    case "terminal:spawn":
-      if (msg.id && msg.command) spawnPty(msg.id, msg.command, msg.args ?? [], ws)
+    case "terminal:spawn": {
+      if (!msg.id || !msg.toolId) break
+      const tools = await getTools()
+      const tool = tools.find((t) => t.id === msg.toolId)
+      if (!tool) {
+        send(ws, { type: "terminal:output", id: msg.id, data: `\r\n\x1b[31mUnknown tool: "${msg.toolId}"\x1b[0m\r\n` })
+        send(ws, { type: "terminal:exit", id: msg.id, code: 1 })
+        break
+      }
+      spawnPty(msg.id, tool.command, tool.args ?? [], ws)
       break
+    }
     case "terminal:input":
       if (msg.id && msg.data != null) sendInput(msg.id, msg.data)
       break
