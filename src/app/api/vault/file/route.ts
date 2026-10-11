@@ -1,12 +1,6 @@
 import { NextResponse } from "next/server"
-import { readVaultFile, writeVaultFile } from "@/lib/vault"
+import { readVaultFile, writeVaultFile, resolveInVault, VaultPathError } from "@/lib/vault"
 import { getConfig } from "@/lib/db"
-import path from "path"
-
-function isInsideVault(vaultPath: string, filePath: string): boolean {
-  const resolved = path.resolve(filePath)
-  return resolved.startsWith(path.resolve(vaultPath))
-}
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
@@ -14,11 +8,17 @@ export async function GET(req: Request) {
   if (!filePath) return NextResponse.json({ error: "Missing path" }, { status: 400 })
 
   const config = await getConfig()
-  if (!isInsideVault(config.vaultPath, filePath)) {
-    return NextResponse.json({ error: "Path outside vault" }, { status: 403 })
+  let real: string
+  try {
+    real = await resolveInVault(config.vaultPath, filePath)
+  } catch (err) {
+    if (err instanceof VaultPathError) {
+      return NextResponse.json({ error: "Path outside vault" }, { status: 403 })
+    }
+    return NextResponse.json({ error: "File not found" }, { status: 404 })
   }
 
-  const content = await readVaultFile(filePath)
+  const content = await readVaultFile(real)
   return NextResponse.json({ content })
 }
 
@@ -29,10 +29,16 @@ export async function PUT(req: Request) {
   }
 
   const config = await getConfig()
-  if (!isInsideVault(config.vaultPath, filePath)) {
-    return NextResponse.json({ error: "Path outside vault" }, { status: 403 })
+  let real: string
+  try {
+    real = await resolveInVault(config.vaultPath, filePath)
+  } catch (err) {
+    if (err instanceof VaultPathError) {
+      return NextResponse.json({ error: "Path outside vault" }, { status: 403 })
+    }
+    return NextResponse.json({ error: "Parent directory not found" }, { status: 404 })
   }
 
-  await writeVaultFile(filePath, content)
+  await writeVaultFile(real, content)
   return NextResponse.json({ ok: true })
 }
