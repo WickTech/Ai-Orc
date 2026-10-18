@@ -45,7 +45,11 @@ export async function getConfig(): Promise<AppConfig> {
 
 export async function setConfig(updates: Partial<AppConfig>): Promise<AppConfig> {
   const db = await readDb()
-  db.config = { ...db.config, ...updates }
+  // Only known keys: callers pass request bodies, so never spread them blindly.
+  const known: Partial<AppConfig> = {}
+  if (updates.vaultPath !== undefined) known.vaultPath = updates.vaultPath
+  if (updates.port !== undefined) known.port = updates.port
+  db.config = { ...db.config, ...known }
   await writeDb(db)
   return db.config
 }
@@ -57,6 +61,7 @@ export async function getTools(): Promise<Tool[]> {
 export async function addTool(tool: Tool): Promise<Tool[]> {
   const db = await readDb()
   const idx = db.tools.findIndex((t) => t.id === tool.id)
+  if (idx >= 0 && db.tools[idx].builtin) throw new Error(`Cannot replace built-in tool "${tool.id}"`)
   if (idx >= 0) db.tools[idx] = tool
   else db.tools.push(tool)
   await writeDb(db)

@@ -142,7 +142,36 @@ describe("cloneAndAnalyze", () => {
     expect(existsSync(path.join(home, "etc"))).toBe(false)
   })
 
-  // Known gap (see PR description): the HTTP route enforces https://github.com/,
-  // but cloneAndAnalyze itself accepts any host and scheme.
-  it.todo("cloneAndAnalyze rejects non-GitHub hosts and non-https schemes by itself")
+  it("rejects non-GitHub hosts, non-https schemes, credentials, ports and extra path segments by itself", async () => {
+    const { mod } = await withTempHome(load)
+    for (const url of [
+      "http://github.com/a/b",
+      "https://gitlab.com/a/b",
+      "https://github.com.evil.example/a/b",
+      "https://evil.example/github.com/a/b",
+      "https://user:pw@github.com/a/b",
+      "https://github.com:8443/a/b",
+      "ssh://github.com/a/b",
+      "git@github.com:a/b.git",
+      "file:///etc/passwd",
+      "https://github.com/a/b/tree/main",
+      "https://github.com/a/b%20c",
+      "https://github.com/a/-upload-pack",
+    ]) {
+      await expect(mod.cloneAndAnalyze(url), url).rejects.toThrow()
+    }
+    expect(clone).not.toHaveBeenCalled()
+  })
+
+  it("clones the normalized URL, never the raw input", async () => {
+    const { mod } = await withTempHome(load)
+    await mod.cloneAndAnalyze("https://github.com/../x/y")
+    expect(clone.mock.calls[0][0]).toBe("https://github.com/x/y")
+  })
+
+  it("accepts a trailing slash and returns the normalized repo URL", async () => {
+    const { mod } = await withTempHome(load)
+    const result = await mod.cloneAndAnalyze("https://github.com/acme/cool-tool.git/")
+    expect(result.repoUrl).toBe("https://github.com/acme/cool-tool")
+  })
 })

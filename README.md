@@ -118,6 +118,24 @@ The Dashboard passes spawn info through URL params (e.g. `/terminals?id=claude-1
 
 ---
 
+## Security model
+
+AI-Orc can spawn terminals and read/write your notes, so the server is locked down by default:
+
+- **Loopback only.** It binds to `127.0.0.1`. Set `HOST=0.0.0.0` only if you accept LAN exposure; the LAN addresses of this machine are then added to the allow-list.
+- **Host check (DNS rebinding).** Every `/api` request and the `/ws` handshake must carry a `Host` header that is one of this server's own `host:port` values. A page that rebinds `evil.example` to `127.0.0.1` is rejected, reads included. Reach the app via `localhost` or `127.0.0.1` (or the LAN IP when `HOST` is set), not another hostname.
+- **Origin check (CSRF).** Mutating requests from a browser must come from the app's own origin; the WebSocket handshake too.
+- **Scripts need a token.** A mutating request with no `Origin` header (curl, scripts) is refused unless `AI_ORC_TOKEN` is set and sent as `Authorization: Bearer <token>`:
+  ```bash
+  AI_ORC_TOKEN=$(openssl rand -hex 24) npm run dev
+  curl -X PUT http://127.0.0.1:3000/api/config -H "Authorization: Bearer $AI_ORC_TOKEN" \
+       -H 'Content-Type: application/json' -d '{"port":3000}'
+  ```
+- **Settings are validated.** `PUT /api/config` accepts only `vaultPath` and `port`. The vault must be an existing directory, and `/` or your home folder (or a parent of it) is refused.
+- **The vault API serves notes only.** Only visible `.md` files inside the vault, with symlinks resolved before the check. Dotfiles and dot-folders are refused.
+- **Registry clones are GitHub-only.** `https://github.com/<owner>/<repo>` exactly: no other host or scheme, no credentials, no extra path. A repo named like a built-in tool never replaces the built-in.
+- **Terminals run registered tools only.** The WebSocket spawns the command stored in the registry, never one supplied by the client.
+
 ## Local config
 
 All state lives at `~/.ai-orc/db.json` — never committed to git.

@@ -13,6 +13,7 @@ export default function SettingsPage() {
   const [config, setConfig] = useState<Config>({ vaultPath: "", port: 3000 })
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [error, setError] = useState("")
 
   useEffect(() => {
     fetch("/api/config")
@@ -23,14 +24,24 @@ export default function SettingsPage() {
 
   async function save() {
     setSaving(true)
+    setError("")
     try {
-      await fetch("/api/config", {
+      const res = await fetch("/api/config", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(config),
       })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        setError(body.error ?? `Could not save settings (HTTP ${res.status})`)
+        return
+      }
+      const body = await res.json()
+      if (body.config) setConfig(body.config)
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
+    } catch {
+      setError("Could not reach the server")
     } finally {
       setSaving(false)
     }
@@ -79,6 +90,12 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
+
+        {error && (
+          <p role="alert" className="text-sm text-red-400">
+            {error}
+          </p>
+        )}
 
         <div className="flex justify-end">
           <Button

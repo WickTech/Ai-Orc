@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { readVaultFile, writeVaultFile, resolveInVault, VaultPathError } from "@/lib/vault"
+import { readVaultFile, writeVaultFile, resolveInVault, isServableVaultFile, VaultPathError } from "@/lib/vault"
 import { getConfig } from "@/lib/db"
 
 export async function GET(req: Request) {
@@ -16,6 +16,10 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Path outside vault" }, { status: 403 })
     }
     return NextResponse.json({ error: "File not found" }, { status: 404 })
+  }
+
+  if (!(await isServableVaultFile(config.vaultPath, real))) {
+    return NextResponse.json({ error: "Only visible .md files can be accessed" }, { status: 403 })
   }
 
   // resolveInVault also accepts not-yet-existing paths (for writes), so a
@@ -46,6 +50,10 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: "Path outside vault" }, { status: 403 })
     }
     return NextResponse.json({ error: "Parent directory not found" }, { status: 404 })
+  }
+
+  if (!(await isServableVaultFile(config.vaultPath, real))) {
+    return NextResponse.json({ error: "Only visible .md files can be accessed" }, { status: 403 })
   }
 
   await writeVaultFile(real, content)
