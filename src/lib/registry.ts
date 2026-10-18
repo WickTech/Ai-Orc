@@ -35,9 +35,13 @@ export function parseGithubRepoUrl(input: string): { owner: string; repo: string
 
 export async function cloneAndAnalyze(githubUrl: string): Promise<RegistryAddResult> {
   const { owner, repo, url: repoUrl } = parseGithubRepoUrl(githubUrl)
-  const clonePath = path.join(TOOLS_DIR, owner, repo)
+  // owner/repo passed parseGithubRepoUrl (letters, digits, . _ - only; never
+  // "." or ".."), so they cannot climb out of TOOLS_DIR. The containment
+  // check below is defense in depth.
+  const clonePath = path.join(TOOLS_DIR, owner, repo) // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+  if (!clonePath.startsWith(TOOLS_DIR + path.sep)) throw new Error("Invalid GitHub URL")
 
-  await fs.mkdir(path.join(TOOLS_DIR, owner), { recursive: true })
+  await fs.mkdir(path.join(TOOLS_DIR, owner), { recursive: true }) // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
 
   try {
     await fs.access(clonePath)
@@ -49,7 +53,7 @@ export async function cloneAndAnalyze(githubUrl: string): Promise<RegistryAddRes
   let readmeContent = ""
   for (const name of ["README.md", "readme.md", "Readme.md", "README.txt"]) {
     try {
-      readmeContent = await fs.readFile(path.join(clonePath, name), "utf-8")
+      readmeContent = await fs.readFile(path.join(clonePath, name), "utf-8") // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal (name is from the fixed list above)
       break
     } catch {}
   }
