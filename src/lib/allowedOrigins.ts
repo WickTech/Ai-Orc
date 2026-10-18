@@ -25,3 +25,11 @@ export function allowedOrigins(port: number | string, hostname?: string): Set<st
 
   return origins
 }
+
+// Host header values (host:port) that correspond to the allowed origins.
+// A browser talking to a DNS-rebound name sends that name in Host, so
+// checking it on every request closes the rebinding read path that the
+// Origin check (mutations and WebSocket only) cannot.
+export function allowedHosts(origins: Set<string>): Set<string> {
+  return new Set([...origins].map((o) => o.replace(/^https?:\/\//, "")))
+}
