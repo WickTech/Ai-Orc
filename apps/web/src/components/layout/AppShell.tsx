@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, TerminalSquare, BookOpen, Package, Settings, Cpu, GitBranch, Radar } from "lucide-react"
+import { LayoutDashboard, TerminalSquare, BookOpen, Package, Settings, Cpu, GitBranch, Radar, ListChecks } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useStore } from "@/store"
 import { SessionWatcher } from "@/components/sessions/SessionWatcher"
@@ -10,6 +10,7 @@ import { SessionWatcher } from "@/components/sessions/SessionWatcher"
 const NAV = [
   { href: "/", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/mission-control", icon: Radar, label: "Mission Control" },
+  { href: "/tasks", icon: ListChecks, label: "Tasks" },
   { href: "/terminals", icon: TerminalSquare, label: "Terminals" },
   { href: "/worktrees", icon: GitBranch, label: "Worktrees" },
   { href: "/vault", icon: BookOpen, label: "Vault" },
