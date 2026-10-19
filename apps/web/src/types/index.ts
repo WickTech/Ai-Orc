@@ -13,6 +13,8 @@ export interface AppConfig {
   port: number
   /** Absolute paths of git repository roots that sessions may run isolated worktrees in. */
   repos: string[]
+  /** Per repo (absolute path): argv of the command that must pass before a session can be merged. */
+  verify: Record<string, string[]>
 }
 
 export interface Db {
@@ -28,6 +30,7 @@ export type WsMessageType =
   | "terminal:output"
   | "terminal:exit"
   | "terminal:worktree"
+  | "terminal:warning"
   | "vault:change"
 
 export interface WsMessage {
@@ -80,4 +83,6 @@ export interface TerminalState {
   /** Present once the server created the worktree. */
   branch?: string
   worktreePath?: string
+  /** Set when the output looks like the agent is stuck in a loop. */
+  warning?: string
 }

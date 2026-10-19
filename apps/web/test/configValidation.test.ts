@@ -108,3 +108,26 @@ describe("validateConfigUpdate", () => {
     })
   })
 })
+
+describe("verify", () => {
+  it("accepts argv arrays keyed by a repository and returns real paths", async () => {
+    const a = gitRepo()
+    expect((await validateConfigUpdate({ verify: { [a]: ["npm", "test"] } })).verify).toEqual({ [a]: ["npm", "test"] })
+    expect((await validateConfigUpdate({ verify: {} })).verify).toEqual({})
+  })
+
+  it("rejects non-objects, non-repos, shell-ish programs, empty and oversized commands", async () => {
+    const a = gitRepo()
+    await bad({ verify: "npm test" })
+    await bad({ verify: [] })
+    await bad({ verify: { [tempDir("plain-")]: ["npm"] } })
+    await bad({ verify: { [a]: "npm test" } })
+    await bad({ verify: { [a]: [] } })
+    await bad({ verify: { [a]: ["npm test"] } })
+    await bad({ verify: { [a]: ["/bin/sh", "-c", "x"] } })
+    await bad({ verify: { [a]: ["sh;rm"] } })
+    await bad({ verify: { [a]: ["npm", 1] } })
+    await bad({ verify: { [a]: ["npm", "x".repeat(201)] } })
+    await bad({ verify: { [a]: Array.from({ length: 21 }, () => "x") } })
+  })
+})

@@ -14,7 +14,7 @@ export function builtinTools(): Tool[] {
 }
 
 const DEFAULT_DB: Db = {
-  config: { vaultPath: "", port: 3000, repos: [] },
+  config: { vaultPath: "", port: 3000, repos: [], verify: {} },
   tools: [],
 }
 
@@ -58,6 +58,7 @@ export async function setConfig(updates: Partial<AppConfig>): Promise<AppConfig>
   if (updates.vaultPath !== undefined) known.vaultPath = updates.vaultPath
   if (updates.port !== undefined) known.port = updates.port
   if (updates.repos !== undefined) known.repos = updates.repos
+  if (updates.verify !== undefined) known.verify = updates.verify
   db.config = { ...db.config, ...known }
   await writeDb(db)
   return db.config

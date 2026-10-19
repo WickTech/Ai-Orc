@@ -19,6 +19,7 @@ interface AppStore {
   setActiveTerminal: (id: string | null) => void
   updateTerminalStatus: (id: string, status: TerminalStatus) => void
   setTerminalWorktree: (id: string, branch: string, worktreePath: string) => void
+  setTerminalWarning: (id: string, warning: string | undefined) => void
   removeTerminal: (id: string) => void
 }
 
@@ -37,6 +38,10 @@ export const useStore = create<AppStore>((set) => ({
   setTerminalWorktree: (id, branch, worktreePath) =>
     set((s) => ({
       terminals: s.terminals.map((t) => (t.id === id ? { ...t, branch, worktreePath } : t)),
+    })),
+  setTerminalWarning: (id, warning) =>
+    set((s) => ({
+      terminals: s.terminals.map((t) => (t.id === id ? { ...t, warning } : t)),
     })),
   removeTerminal: (id) =>
     set((s) => {

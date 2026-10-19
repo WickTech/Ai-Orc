@@ -110,6 +110,12 @@ function metaPath(repoId: string, id: string): string {
   return path.join(worktreesRoot(), repoId, `${id}.json`) // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
 }
 
+/** Per-session side file (e.g. "verify") next to the session metadata. */
+export function sessionFile(repoId: string, id: string, kind: string): string {
+  // repoId is a hash we computed and id is validated as a slug by every caller.
+  return path.join(worktreesRoot(), repoId, `${id}.${kind}.json`) // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+}
+
 function worktreePath(repoId: string, id: string): string {
   // id is validated as a slug by every caller, so it cannot contain separators.
   const dir = path.join(worktreesRoot(), repoId, id) // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
@@ -212,6 +218,7 @@ export async function removeWorktree(repoInput: string, id: string, opts: { forc
   else await git(repoPath, ["worktree", "prune"])
   await git(repoPath, ["branch", "-D", meta.branch]).catch(() => undefined) // already gone is fine
   await fs.rm(metaPath(repoId, id), { force: true })
+  await fs.rm(sessionFile(repoId, id, "verify"), { force: true })
 }
 
 /** The status of an existing session worktree, or null when there is none. */

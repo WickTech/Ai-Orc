@@ -56,7 +56,7 @@ describe("db", () => {
 
   it("defaults to no vault and port 3000", async () => {
     const { mod } = await withTempHome(load)
-    expect(await mod.getConfig()).toEqual({ vaultPath: "", port: 3000, repos: [] })
+    expect(await mod.getConfig()).toEqual({ vaultPath: "", port: 3000, repos: [], verify: {} })
   })
 
   it("merges config updates and persists them", async () => {
@@ -64,7 +64,7 @@ describe("db", () => {
     await mod.setConfig({ vaultPath: "/tmp/vault" })
     expect((await mod.getConfig()).vaultPath).toBe("/tmp/vault")
     const onDisk = JSON.parse(readFileSync(path.join(home, ".ai-orc", "db.json"), "utf-8"))
-    expect(onDisk.config).toEqual({ vaultPath: "/tmp/vault", port: 3000, repos: [] })
+    expect(onDisk.config).toEqual({ vaultPath: "/tmp/vault", port: 3000, repos: [], verify: {} })
   })
 
   it("upserts a tool by id", async () => {
@@ -89,7 +89,7 @@ describe("db", () => {
     const { mod, home } = await withTempHome(load)
     await mod.getTools() // creates the file
     writeFileSync(path.join(home, ".ai-orc", "db.json"), JSON.stringify({ config: { vaultPath: "/v" } }))
-    expect(await mod.getConfig()).toEqual({ vaultPath: "/v", port: 3000, repos: [] })
+    expect(await mod.getConfig()).toEqual({ vaultPath: "/v", port: 3000, repos: [], verify: {} })
     expect((await mod.getTools()).length).toBe(4)
   })
 
@@ -105,6 +105,6 @@ describe("db", () => {
     const { mod, home } = await withTempHome(load)
     await mod.setConfig({ vaultPath: "/v", port: 4000, evil: "x" } as never)
     const onDisk = JSON.parse(readFileSync(path.join(home, ".ai-orc", "db.json"), "utf-8"))
-    expect(onDisk.config).toEqual({ vaultPath: "/v", port: 4000, repos: [] })
+    expect(onDisk.config).toEqual({ vaultPath: "/v", port: 4000, repos: [], verify: {} })
   })
 })

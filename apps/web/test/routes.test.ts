@@ -36,7 +36,7 @@ describe("/api/config", () => {
   it("returns config and the built-in tools", async () => {
     const { config } = await setup()
     const body = await (await config.GET()).json()
-    expect(body.config).toEqual({ vaultPath: "", port: 3000, repos: [] })
+    expect(body.config).toEqual({ vaultPath: "", port: 3000, repos: [], verify: {} })
     expect(body.tools.map((t: { id: string }) => t.id)).toEqual(["claude", "gemini", "codex", "opencode"])
   })
 
@@ -56,7 +56,7 @@ describe("/api/config", () => {
     }
     const raw = new Request("http://localhost:3000/api/config", { method: "PUT", body: "{nope", headers: { "content-type": "application/json" } })
     expect((await config.PUT(raw)).status).toBe(400)
-    expect(await db.getConfig()).toEqual({ vaultPath: "", port: 3000, repos: [] })
+    expect(await db.getConfig()).toEqual({ vaultPath: "", port: 3000, repos: [], verify: {} })
   })
 })
 

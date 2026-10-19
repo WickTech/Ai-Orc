@@ -31,6 +31,8 @@ Add git repositories under **Settings → Repositories**, then pick one in the *
 - Restarting a terminal reuses its worktree.
 - **Review and approval:** the Worktrees page has a **Review** button showing the changed files and the full diff (new files included). **Approve & merge** commits the session's work and merges it into the branch checked out in the main repo with a merge commit (`--no-ff`). Approval is bound to the exact diff you reviewed: if the agent changes anything afterwards, the merge is refused and you must review again. It also refuses a dirty main checkout, a detached HEAD, an empty diff, and a conflicting merge (which is aborted, leaving main clean and the session intact). After a successful merge the session worktree and branch are removed. Nothing merges without this explicit approval.
 - **Audit log:** merges, refused merges, rejections and removals are appended as JSON lines to `~/.ai-orc/audit.log` (newest 20 shown on the Worktrees page, `GET /api/audit`). Your repository's own git hooks run on the commit and merge, as they would for you.
+- **Verify before merge (optional):** set a verify command per repository in Settings (a program and arguments, run without a shell inside the session worktree, 5 minute limit, e.g. `npm test`). A session can then only be approved after that command passed on the exact diff you are merging; any later change invalidates the result. Runs and failures are in the audit log (`verified`, `verify-failed`).
+- **Loop warning:** if a terminal prints the same line (or the same few lines) over and over, the panel shows a dismissable warning so you can stop a stuck agent. It is advisory and never stops the session by itself.
 - All git calls use argument arrays without a shell.
 
 ---
