@@ -68,6 +68,20 @@ export async function resolveInVault(vaultPath: string, filePath: string): Promi
   return real
 }
 
+// The vault API serves notes, not arbitrary files: only .md, and nothing under
+// a dot-directory or dotfile (the tree view already hides those). `real` must
+// be the resolved path from resolveInVault so symlinks can't dodge the check.
+export async function isServableVaultFile(vaultPath: string, real: string): Promise<boolean> {
+  if (!vaultPath) return false
+  // vaultPath is the admin-configured vault (validated by validateConfigUpdate).
+  const root = await fs.realpath(path.resolve(vaultPath)).catch(() => null) // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+  if (!root) return false
+  const rel = path.relative(root, real)
+  if (rel === "" || rel.startsWith("..") || path.isAbsolute(rel)) return false
+  if (rel.split(path.sep).some((segment) => segment.startsWith("."))) return false
+  return real.toLowerCase().endsWith(".md")
+}
+
 export async function readVaultFile(filePath: string): Promise<string> {
   return fs.readFile(filePath, "utf-8")
 }

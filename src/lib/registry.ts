@@ -6,26 +6,54 @@ import type { InstallStep, RegistryAddResult } from "@/types"
 
 const TOOLS_DIR = path.join(os.homedir(), ".ai-orc", "tools")
 
-export async function cloneAndAnalyze(githubUrl: string): Promise<RegistryAddResult> {
-  const url = new URL(githubUrl)
-  const parts = url.pathname.replace(/^\//, "").replace(/\.git$/, "").split("/")
-  if (parts.length < 2) throw new Error("Invalid GitHub URL — expected https://github.com/owner/repo")
-  const [owner, repo] = parts
-  const clonePath = path.join(TOOLS_DIR, owner, repo)
+const SEGMENT = /^[A-Za-z0-9._-]+$/
 
-  await fs.mkdir(path.join(TOOLS_DIR, owner), { recursive: true })
+// Only https://github.com/<owner>/<repo> is accepted: no other host or scheme
+// (git would happily clone file:// or ssh:// URLs), no credentials or port,
+// no extra path, and owner/repo limited to GitHub's own character set so they
+// are safe to use as directory names.
+export function parseGithubRepoUrl(input: string): { owner: string; repo: string; url: string } {
+  const invalid = () => new Error("Invalid GitHub URL — expected https://github.com/owner/repo")
+  let url: URL
+  try {
+    url = new URL(input)
+  } catch {
+    throw invalid()
+  }
+  if (url.protocol !== "https:" || url.hostname !== "github.com" || url.port || url.username || url.password) {
+    throw invalid()
+  }
+  const parts = url.pathname.replace(/^\//, "").replace(/\/$/, "").split("/")
+  if (parts.length !== 2) throw invalid()
+  const owner = parts[0]
+  const repo = parts[1].replace(/\.git$/, "")
+  for (const segment of [owner, repo]) {
+    if (!SEGMENT.test(segment) || segment === "." || segment === ".." || segment.startsWith("-")) throw invalid()
+  }
+  return { owner, repo, url: `https://github.com/${owner}/${repo}` }
+}
+
+export async function cloneAndAnalyze(githubUrl: string): Promise<RegistryAddResult> {
+  const { owner, repo, url: repoUrl } = parseGithubRepoUrl(githubUrl)
+  // owner/repo passed parseGithubRepoUrl (letters, digits, . _ - only; never
+  // "." or ".."), so they cannot climb out of TOOLS_DIR. The containment
+  // check below is defense in depth.
+  const clonePath = path.join(TOOLS_DIR, owner, repo) // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+  if (!clonePath.startsWith(TOOLS_DIR + path.sep)) throw new Error("Invalid GitHub URL")
+
+  await fs.mkdir(path.join(TOOLS_DIR, owner), { recursive: true }) // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
 
   try {
     await fs.access(clonePath)
     await simpleGit(clonePath).pull()
   } catch {
-    await simpleGit().clone(githubUrl, clonePath, ["--depth", "1"])
+    await simpleGit().clone(repoUrl, clonePath, ["--depth", "1"])
   }
 
   let readmeContent = ""
   for (const name of ["README.md", "readme.md", "Readme.md", "README.txt"]) {
     try {
-      readmeContent = await fs.readFile(path.join(clonePath, name), "utf-8")
+      readmeContent = await fs.readFile(path.join(clonePath, name), "utf-8") // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal (name is from the fixed list above)
       break
     } catch {}
   }
@@ -34,7 +62,7 @@ export async function cloneAndAnalyze(githubUrl: string): Promise<RegistryAddRes
     name: repo,
     description: extractDescription(readmeContent),
     installSteps: extractInstallSteps(readmeContent),
-    repoUrl: githubUrl,
+    repoUrl,
     clonePath,
   }
 }

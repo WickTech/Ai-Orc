@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { mkdirSync, readFileSync, symlinkSync, writeFileSync } from "fs"
+import { existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "fs"
 import path from "path"
 import { cleanupTempDirs, tempDir, withTempHome } from "./helpers"
 
@@ -40,10 +40,23 @@ describe("/api/config", () => {
     expect(body.tools.map((t: { id: string }) => t.id)).toEqual(["claude", "gemini", "codex"])
   })
 
-  it("updates the vault path", async () => {
+  it("updates the vault path to an existing directory", async () => {
     const { config } = await setup()
-    const res = await config.PUT(json({ vaultPath: "/tmp/v" }, "PUT"))
-    expect((await res.json()).config.vaultPath).toBe("/tmp/v")
+    const dir = tempDir("vault-")
+    const res = await config.PUT(json({ vaultPath: dir }, "PUT"))
+    expect(res.status).toBe(200)
+    expect((await res.json()).config.vaultPath).toBeTruthy()
+  })
+
+  it("rejects dangerous or malformed updates with 400 and stores nothing", async () => {
+    const { config, db } = await setup()
+    for (const body of [{ vaultPath: "/" }, { vaultPath: 5 }, { port: 99999 }, { evil: true }, []]) {
+      const res = await config.PUT(json(body, "PUT"))
+      expect(res.status, JSON.stringify(body)).toBe(400)
+    }
+    const raw = new Request("http://localhost:3000/api/config", { method: "PUT", body: "{nope", headers: { "content-type": "application/json" } })
+    expect((await config.PUT(raw)).status).toBe(400)
+    expect(await db.getConfig()).toEqual({ vaultPath: "", port: 3000 })
   })
 })
 
@@ -97,6 +110,21 @@ describe("/api/vault/file", () => {
     expect(bad.status).toBe(403)
   })
 
+  it("serves only visible .md files, for reads and writes", async () => {
+    const { file, root } = await withVault()
+    writeFileSync(path.join(root, "notes.txt"), "plain")
+    mkdirSync(path.join(root, ".hidden"))
+    writeFileSync(path.join(root, ".hidden", "x.md"), "hidden")
+    symlinkSync(path.join(root, "notes.txt"), path.join(root, "alias.md"))
+
+    expect((await file.GET(get(path.join(root, "notes.txt")))).status).toBe(403)
+    expect((await file.GET(get(path.join(root, ".hidden", "x.md")))).status).toBe(403)
+    expect((await file.GET(get(path.join(root, "alias.md")))).status).toBe(403) // symlink to a non-.md file
+    const put = await file.PUT(json({ path: path.join(root, "evil.sh"), content: "x" }, "PUT"))
+    expect(put.status).toBe(403)
+    expect(existsSync(path.join(root, "evil.sh"))).toBe(false)
+  })
+
   it("400 when a write is missing path or content", async () => {
     const { file, root } = await withVault()
     expect((await file.PUT(json({ path: path.join(root, "x.md") }, "PUT"))).status).toBe(400)
@@ -147,6 +175,16 @@ describe("/api/registry", () => {
     expect((await add.POST(json({ url: "https://github.com/a/Cool_Tool" }))).status).toBe(200)
     const tools = await (await list.GET()).json()
     expect(tools.find((t: { id: string }) => t.id === "cool-tool")).toMatchObject({ label: "Cool_Tool", repoUrl: "https://github.com/a/Cool_Tool" })
+  })
+
+  it("a repo named like a built-in gets its own id and leaves the built-in intact", async () => {
+    const { add, list } = await setup()
+    cloneAndAnalyze.mockResolvedValue({ name: "codex", description: "", installSteps: [], repoUrl: "https://github.com/evil/codex", clonePath: "/x" })
+    expect((await add.POST(json({ url: "https://github.com/evil/codex" }))).status).toBe(200)
+    const tools = await (await list.GET()).json()
+    const builtin = tools.find((t: { id: string }) => t.id === "codex")
+    expect(builtin).toMatchObject({ builtin: true, label: "Codex CLI" })
+    expect(tools.find((t: { id: string }) => t.id === "codex-registry")).toMatchObject({ repoUrl: "https://github.com/evil/codex" })
   })
 
   it("DELETE removes custom tools but not built-ins", async () => {

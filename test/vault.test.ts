@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest"
 import { mkdirSync, symlinkSync, writeFileSync } from "fs"
 import path from "path"
-import { getVaultTree, resolveInVault, VaultPathError } from "@/lib/vault"
+import { getVaultTree, isServableVaultFile, resolveInVault, VaultPathError } from "@/lib/vault"
 import { cleanupTempDirs, tempDir } from "./helpers"
 
 afterEach(cleanupTempDirs)
@@ -90,9 +90,6 @@ describe("resolveInVault", () => {
     expect(err).toBeInstanceOf(Error)
     expect(err).not.toBeInstanceOf(VaultPathError)
   })
-
-  // Known gaps (see PR description):
-  it.todo("only serves .md files (today any file under the vault root can be read or written)")
 })
 
 describe("getVaultTree", () => {
@@ -113,5 +110,31 @@ describe("getVaultTree", () => {
 
   it("returns an empty list for a missing directory", async () => {
     expect(await getVaultTree("/definitely/not/here")).toEqual([])
+  })
+})
+
+describe("isServableVaultFile", () => {
+  it("serves visible .md files", async () => {
+    const { root } = makeVault()
+    expect(await isServableVaultFile(root, path.join(root, "notes", "a.md"))).toBe(true)
+    expect(await isServableVaultFile(root, path.join(root, "notes", "NEW.MD"))).toBe(true)
+  })
+
+  it("refuses non-markdown files", async () => {
+    const { root } = makeVault()
+    for (const name of ["x.txt", "id_rsa", "config.json", "a.md.bak"]) {
+      expect(await isServableVaultFile(root, path.join(root, "notes", name)), name).toBe(false)
+    }
+  })
+
+  it("refuses files inside dot-directories and dotfiles, as the tree view hides them", async () => {
+    const { root } = makeVault()
+    expect(await isServableVaultFile(root, path.join(root, ".obsidian", "a.md"))).toBe(false)
+    expect(await isServableVaultFile(root, path.join(root, "notes", ".secret.md"))).toBe(false)
+  })
+
+  it("refuses a path outside the vault", async () => {
+    const { root, outside } = makeVault()
+    expect(await isServableVaultFile(root, path.join(outside, "secret.md"))).toBe(false)
   })
 })

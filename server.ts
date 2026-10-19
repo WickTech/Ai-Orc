@@ -5,7 +5,8 @@ import { WebSocketServer, WebSocket } from "ws"
 import { handleWsMessage, cleanupClientPtys } from "./src/lib/pty"
 import { startVaultWatcher } from "./src/lib/vault"
 import { getConfig } from "./src/lib/db"
-import { allowedOrigins } from "./src/lib/allowedOrigins"
+import { allowedOrigins, allowedHosts } from "./src/lib/allowedOrigins"
+import { isAllowedUpgrade } from "./src/lib/security"
 import type { WsMessage } from "./src/types"
 
 process.on("uncaughtException", (err) => {
@@ -31,6 +32,7 @@ const clients = new Set<WebSocket>()
 // directly and driving unauthenticated terminal spawn. Require the handshake's
 // Origin to be this app's own served origin.
 const ALLOWED_WS_ORIGINS = allowedOrigins(port, hostname)
+const ALLOWED_WS_HOSTS = allowedHosts(ALLOWED_WS_ORIGINS)
 
 export function broadcast(msg: WsMessage): void {
   const data = JSON.stringify(msg)
@@ -68,9 +70,7 @@ app
     const wss = new WebSocketServer({ noServer: true })
 
     httpServer.on("upgrade", (request, socket, head) => {
-      const { pathname } = parse(request.url!)
-      const origin = request.headers.origin
-      if (pathname === "/ws" && origin && ALLOWED_WS_ORIGINS.has(origin)) {
+      if (isAllowedUpgrade(request, ALLOWED_WS_ORIGINS, ALLOWED_WS_HOSTS)) {
         wss.handleUpgrade(request, socket, head, (ws) => wss.emit("connection", ws, request))
       } else {
         socket.destroy()

@@ -58,7 +58,17 @@ describe("db", () => {
     expect((await mod.getTools()).length).toBe(3)
   })
 
-  // Known gaps (see PR description):
-  it.todo("a registry tool whose id equals a built-in id must not replace the built-in")
-  it.todo("setConfig validates input (type of vaultPath, allowed keys)")
+  it("refuses to replace a built-in tool", async () => {
+    const { mod } = await withTempHome(load)
+    await expect(mod.addTool({ id: "claude", label: "Evil", command: "evil" })).rejects.toThrow(/built-in/i)
+    const claude = (await mod.getTools()).find((t) => t.id === "claude")
+    expect(claude).toMatchObject({ command: "claude", builtin: true })
+  })
+
+  it("setConfig keeps only known keys", async () => {
+    const { mod, home } = await withTempHome(load)
+    await mod.setConfig({ vaultPath: "/v", port: 4000, evil: "x" } as never)
+    const onDisk = JSON.parse(readFileSync(path.join(home, ".ai-orc", "db.json"), "utf-8"))
+    expect(onDisk.config).toEqual({ vaultPath: "/v", port: 4000 })
+  })
 })
