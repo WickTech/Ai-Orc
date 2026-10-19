@@ -21,6 +21,8 @@ export function SessionBoard() {
   const { terminals, notifications, markNotificationsRead, clearNotifications } = useStore()
   const [now, setNow] = useState(() => Date.now())
   const [desktop, setDesktop] = useState(false)
+  // Browser support is only known after mount: rendering it directly would differ from the server HTML.
+  const [canNotify, setCanNotify] = useState(false)
 
   // Re-evaluate idle state without waiting for other updates.
   useEffect(() => {
@@ -29,7 +31,10 @@ export function SessionBoard() {
   }, [])
 
   useEffect(() => {
-    const timer = setTimeout(() => setDesktop(desktopEnabled()), 0)
+    const timer = setTimeout(() => {
+      setCanNotify(desktopSupported())
+      setDesktop(desktopEnabled())
+    }, 0)
     return () => clearTimeout(timer)
   }, [])
 
@@ -84,7 +89,7 @@ export function SessionBoard() {
       <section aria-label="Notifications" className="space-y-2">
         <div className="flex items-center gap-2">
           <h2 className="text-xs font-semibold text-white/30 uppercase tracking-wider flex-1">Notifications</h2>
-          {desktopSupported() && (
+          {canNotify && (
             <button
               type="button"
               onClick={toggleDesktop}
