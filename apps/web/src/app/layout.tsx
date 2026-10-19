@@ -7,7 +7,7 @@ import { WebSocketProvider } from "@/providers/WebSocketProvider"
 const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" })
 
 export const metadata: Metadata = {
-  title: "AI-Orc — AI Platform Orchestrator",
+  title: "Axion — agent mission control",
   description: "Locally run and observe Claude Code, Gemini CLI, Codex, and any open-source AI tool.",
 }
 

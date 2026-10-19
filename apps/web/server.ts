@@ -10,11 +10,11 @@ import { isAllowedUpgrade } from "./src/lib/security"
 import type { WsMessage } from "./src/types"
 
 process.on("uncaughtException", (err) => {
-  console.error("[AI-Orc] Uncaught exception:", err)
+  console.error("[Axion] Uncaught exception:", err)
 })
 
 process.on("unhandledRejection", (reason) => {
-  console.error("[AI-Orc] Unhandled rejection:", reason)
+  console.error("[Axion] Unhandled rejection:", reason)
 })
 
 const dev = process.env.NODE_ENV !== "production"
@@ -57,14 +57,14 @@ app
         const parsedUrl = parse(req.url!, true)
         await handle(req, res, parsedUrl)
       } catch (err) {
-        console.error("[AI-Orc] Request handler error:", err)
+        console.error("[Axion] Request handler error:", err)
         res.statusCode = 500
         res.end("Internal server error")
       }
     })
 
     httpServer.on("error", (err) => {
-      console.error("[AI-Orc] HTTP server error:", err)
+      console.error("[Axion] HTTP server error:", err)
     })
 
     const wss = new WebSocketServer({ noServer: true })
@@ -80,7 +80,7 @@ app
     wss.on("connection", (ws: WebSocket) => {
       clients.add(ws)
       ws.on("message", (raw) => {
-        handleWsMessage(ws, raw.toString()).catch((err) => console.error("[AI-Orc] WS message error:", err))
+        handleWsMessage(ws, raw.toString()).catch((err) => console.error("[Axion] WS message error:", err))
       })
       ws.on("close", () => {
         clients.delete(ws)
@@ -89,10 +89,10 @@ app
     })
 
     httpServer.listen(port, hostname, () => {
-      console.log(`\n  \x1b[36m AI-Orc\x1b[0m  ready on \x1b[4mhttp://localhost:${port}\x1b[0m\n`)
+      console.log(`\n  \x1b[36m Axion\x1b[0m  ready on \x1b[4mhttp://localhost:${port}\x1b[0m\n`)
     })
   })
   .catch((err) => {
-    console.error("[AI-Orc] Failed to start:", err)
+    console.error("[Axion] Failed to start:", err)
     process.exit(1)
   })

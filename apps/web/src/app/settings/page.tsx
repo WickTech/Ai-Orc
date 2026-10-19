@@ -70,7 +70,7 @@ export default function SettingsPage() {
       <div className="max-w-2xl mx-auto space-y-8">
         <div>
           <h1 className="text-2xl font-bold text-white">Settings</h1>
-          <p className="text-white/40 text-sm mt-1">Configure AI-Orc for your local environment.</p>
+          <p className="text-white/40 text-sm mt-1">Configure Axion for your local environment.</p>
         </div>
 
         <div className="space-y-6">
