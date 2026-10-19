@@ -22,7 +22,8 @@ const OPERATOR_OTHER_RE = /\b(reply|replies|inbox|email|operator)\b/i;
 
 function groupRegex(words) {
   const escaped = words.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-  return new RegExp(`\\b(${escaped.join('|')})\\b`, 'i');
+  // Words come from the constant KEYWORDS table above and are regex-escaped, so the pattern is never user-controlled.
+  return new RegExp(`\\b(${escaped.join('|')})\\b`, 'i'); // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
 }
 
 const GROUP_REGEXES = Object.fromEntries(
