@@ -85,4 +85,17 @@ export interface TerminalState {
   worktreePath?: string
   /** Set when the output looks like the agent is stuck in a loop. */
   warning?: string
+  /** Set once the process exited. */
+  exitCode?: number
+}
+
+export type NotificationKind = "idle" | "done" | "failed" | "stuck"
+
+export interface AppNotification {
+  id: string
+  at: number
+  kind: NotificationKind
+  terminalId: string
+  message: string
+  read: boolean
 }

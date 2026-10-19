@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation"
 import { LayoutDashboard, TerminalSquare, BookOpen, Package, Settings, Cpu, GitBranch, Radar } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useStore } from "@/store"
+import { SessionWatcher } from "@/components/sessions/SessionWatcher"
 
 const NAV = [
   { href: "/", icon: LayoutDashboard, label: "Dashboard" },
@@ -19,7 +20,9 @@ const NAV = [
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const { terminals } = useStore()
+  const { notifications } = useStore()
   const runningCount = terminals.filter((t) => t.status === "running").length
+  const unread = notifications.filter((n) => !n.read).length
 
   return (
     <div className="flex h-screen bg-[#0d1117] text-white overflow-hidden">
@@ -37,7 +40,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
           {NAV.map(({ href, icon: Icon, label }) => {
             const active = href === "/" ? pathname === "/" : pathname.startsWith(href)
-            const badge = href === "/terminals" && runningCount > 0 ? runningCount : null
+            const badge = href === "/terminals" && runningCount > 0 ? runningCount : href === "/mission-control" && unread > 0 ? unread : null
             return (
               <Link
                 key={href}
@@ -66,6 +69,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
+      <SessionWatcher />
       <main className="flex-1 overflow-hidden flex flex-col">
         {children}
       </main>
