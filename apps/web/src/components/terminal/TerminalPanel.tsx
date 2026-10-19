@@ -16,7 +16,7 @@ interface TerminalPanelProps {
 export function TerminalPanel({ terminal, tool }: TerminalPanelProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const { send } = useWebSocket()
-  const { updateTerminalStatus } = useStore()
+  const { updateTerminalStatus, setTerminalWarning } = useStore()
 
   useTerminal(terminal.id, containerRef)
 
@@ -70,6 +70,14 @@ export function TerminalPanel({ terminal, tool }: TerminalPanelProps) {
           <Square className="h-3.5 w-3.5" />
         </button>
       </div>
+      {terminal.warning && (
+        <div className="flex items-center gap-2 px-3 py-1.5 text-xs bg-amber-500/10 text-amber-300 border-b border-amber-500/30">
+          <span className="flex-1">{terminal.warning}</span>
+          <button type="button" className="underline hover:text-amber-100" onClick={() => setTerminalWarning(terminal.id, undefined)}>
+            Dismiss
+          </button>
+        </div>
+      )}
       <div ref={containerRef} className="flex-1 min-h-0" />
     </div>
   )

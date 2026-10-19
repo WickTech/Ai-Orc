@@ -59,6 +59,17 @@ describe("handleWsMessage", () => {
     expect(spawnMock.mock.calls[0][1]).toEqual([])
   })
 
+  it("sends a terminal:warning when the output loops, and still forwards the output", async () => {
+    const pty = await load()
+    const ws = fakeWs()
+    await pty.handleWsMessage(ws as never, msg({ type: "terminal:spawn", id: "loop1", toolId: "claude" }))
+    procs[0].emitData("Error: edit failed, retrying\n".repeat(12))
+    const types = ws.sent.map((m) => m.type)
+    expect(types).toEqual(["terminal:output", "terminal:warning"])
+    expect(String(ws.sent[1].data)).toMatch(/Possible loop/)
+    expect(ws.sent[1].id).toBe("loop1")
+  })
+
   it("spawns a registered tool using the server-side command and args", async () => {
     const pty = await load()
     const ws = fakeWs()

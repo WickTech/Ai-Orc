@@ -35,6 +35,8 @@ interface Review {
   diff: string
   truncated: boolean
   diffHash: string
+  verifyRequired: boolean
+  verify: { passed: boolean; exitCode: number | null; timedOut: boolean; output: string; diffHash: string; at: string } | null
   targetBranch: string | null
 }
 
@@ -147,6 +149,32 @@ export default function WorktreesPage() {
       }
       setMessage("")
       setReviewing({ session: s, review: body })
+    } catch {
+      setError("Could not reach the server")
+    } finally {
+      setBusy("")
+    }
+  }
+
+  async function runVerify() {
+    if (!reviewing) return
+    const { session } = reviewing
+    setBusy(session.id)
+    setError("")
+    try {
+      const res = await fetch("/api/worktrees/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ repoId: session.repoId, id: session.id }),
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        setError(body.error ?? `Verification request failed (HTTP ${res.status})`)
+        return
+      }
+      // The run can change the diff (files the command wrote): load the new review.
+      const next = await fetch(`/api/worktrees/review?repoId=${encodeURIComponent(session.repoId)}&id=${encodeURIComponent(session.id)}`)
+      if (next.ok) setReviewing({ session, review: await next.json() })
     } catch {
       setError("Could not reach the server")
     } finally {
@@ -293,6 +321,34 @@ export default function WorktreesPage() {
               placeholder="Commit message (approve) or reason (reject), optional"
               className="w-full bg-white/5 border border-white/10 rounded-md px-3 py-2 text-sm text-white placeholder:text-white/20 outline-none"
             />
+            {reviewing.review.verifyRequired && (
+              <div className="rounded-md border border-white/10 p-3 space-y-2 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="text-white/70 flex-1">
+                    {!reviewing.review.verify
+                      ? "Verification required before merge: not run yet."
+                      : reviewing.review.verify.diffHash !== reviewing.review.diffHash
+                        ? "The session changed since the last verification: run it again."
+                        : reviewing.review.verify.passed
+                          ? "Verification passed on this diff."
+                          : reviewing.review.verify.timedOut
+                            ? "Verification timed out."
+                            : `Verification failed (exit code ${reviewing.review.verify.exitCode ?? "none"}).`}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={busy === reviewing.session.id}
+                    onClick={runVerify}
+                    className="rounded-md border border-white/15 px-3 py-1.5 text-white/80 hover:bg-white/10 disabled:opacity-40"
+                  >
+                    {busy === reviewing.session.id ? "Running…" : "Run verification"}
+                  </button>
+                </div>
+                {reviewing.review.verify && !reviewing.review.verify.passed && (
+                  <pre className="max-h-48 overflow-auto whitespace-pre-wrap text-white/50 font-mono">{reviewing.review.verify.output}</pre>
+                )}
+              </div>
+            )}
             <div className="flex justify-end gap-2">
               <button
                 type="button"
@@ -305,7 +361,11 @@ export default function WorktreesPage() {
               <button
                 type="button"
                 disabled={
-                  busy === reviewing.session.id || reviewing.review.files.length === 0 || !reviewing.review.targetBranch
+                  busy === reviewing.session.id ||
+                  reviewing.review.files.length === 0 ||
+                  !reviewing.review.targetBranch ||
+                  (reviewing.review.verifyRequired &&
+                    !(reviewing.review.verify?.passed && reviewing.review.verify.diffHash === reviewing.review.diffHash))
                 }
                 onClick={() => decide("approve")}
                 className="text-sm rounded-md bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 text-white flex items-center gap-1.5 disabled:opacity-40"

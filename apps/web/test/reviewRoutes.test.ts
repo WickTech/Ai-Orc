@@ -134,3 +134,26 @@ describe("POST /api/worktrees/reject and the audit trail", () => {
     expect((await audit.GET(get("limit=abc"))).status).toBe(200)
   })
 })
+
+describe("POST /api/worktrees/verify", () => {
+  it("validates input, rejects unknown repos and reports a missing verify command", async () => {
+    const { verify, repoId } = await setupVerify()
+    expect((await verify.POST(post({ repoId }))).status).toBe(400)
+    expect((await verify.POST(post({ repoId: "nope", id: "s1" }))).status).toBe(404)
+    expect((await verify.POST(post({ repoId, id: "s1" }))).status).toBe(400)
+  })
+
+  it("runs the configured command and returns the result", async () => {
+    const { verify, repoId, repo } = await setupVerify()
+    const db = await import("@/lib/db")
+    await db.setConfig({ verify: { [repo]: ["node", "-e", "process.exit(0)"] } })
+    const res = await verify.POST(post({ repoId, id: "s1" }))
+    expect(res.status).toBe(200)
+    expect((await res.json()).passed).toBe(true)
+  })
+})
+
+async function setupVerify() {
+  const s = await setup()
+  return { ...s, verify: await import("@/app/api/worktrees/verify/route") }
+}

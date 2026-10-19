@@ -1,5 +1,7 @@
 import { createHash } from "crypto"
 import { appendAudit } from "@/lib/audit"
+import { getConfig } from "@/lib/db"
+import { readVerify, type VerifyResult } from "@/lib/verifyStore"
 import {
   findWorktree,
   removeWorktree,
@@ -31,6 +33,10 @@ export interface Review {
   diffHash: string
   /** Branch checked out in the main repo (where the merge would land), null when detached. */
   targetBranch: string | null
+  /** The repo has a verify command, so approval needs a passing run on this exact diff. */
+  verifyRequired: boolean
+  /** Latest verify result for this session (may be for an older diff: compare diffHash). */
+  verify: VerifyResult | null
 }
 
 async function sessionOf(repoPath: string, id: string): Promise<WorktreeStatus> {
@@ -85,6 +91,8 @@ async function buildReview(repoPath: string, status: WorktreeStatus): Promise<Re
     truncated: shown.length > MAX_DISPLAY,
     diffHash: createHash("sha256").update(base).update("\0").update(full).digest("hex"),
     targetBranch: await targetBranchOf(repoPath),
+    verifyRequired: Boolean((await getConfig()).verify?.[repoPath]),
+    verify: await readVerify(repoPath, status.id),
   }
 }
 
@@ -125,6 +133,14 @@ export async function approveMerge(
   if (!review.targetBranch) return refuse(repoPath, status, "The repository is on a detached HEAD: check out a branch to merge into")
   if ((await runGit(repoPath, ["status", "--porcelain", "--untracked-files=no"])) !== "") {
     return refuse(repoPath, status, "The repository has uncommitted changes: commit or stash them before merging")
+  }
+
+  if ((await getConfig()).verify?.[repoPath]) {
+    const verified = await readVerify(repoPath, id)
+    if (!verified || verified.diffHash !== review.diffHash) {
+      return refuse(repoPath, status, "This repository requires verification: run it on the current diff before approving")
+    }
+    if (!verified.passed) return refuse(repoPath, status, "Verification failed on this diff: fix the session and verify again")
   }
 
   const message = cleanMessage(opts.message, `Axion session ${status.branch}`)

@@ -8,18 +8,26 @@ interface Config {
   vaultPath: string
   port: number
   repos: string[]
+  verify: Record<string, string[]>
 }
 
 export default function SettingsPage() {
-  const [config, setConfig] = useState<Config>({ vaultPath: "", port: 3000, repos: [] })
+  const [config, setConfig] = useState<Config>({ vaultPath: "", port: 3000, repos: [], verify: {} })
+  // Verify command per repository row, as typed (split on spaces when saved).
+  const [verifyText, setVerifyText] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState("")
 
+  function applyConfig(next: Config) {
+    setConfig(next)
+    setVerifyText(next.repos.map((r) => (next.verify?.[r] ?? []).join(" ")))
+  }
+
   useEffect(() => {
     fetch("/api/config")
       .then((r) => r.json())
-      .then((d) => { if (d.config) setConfig(d.config) })
+      .then((d) => { if (d.config) applyConfig(d.config) })
       .catch(() => {})
   }, [])
 
@@ -30,7 +38,16 @@ export default function SettingsPage() {
       const res = await fetch("/api/config", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...config, repos: config.repos.map((r) => r.trim()).filter(Boolean) }),
+        body: JSON.stringify({
+          ...config,
+          repos: config.repos.map((r) => r.trim()).filter(Boolean),
+          verify: Object.fromEntries(
+            config.repos
+              .map((r, i) => [r.trim(), (verifyText[i] ?? "").trim()] as const)
+              .filter(([r, v]) => r && v)
+              .map(([r, v]) => [r, v.split(/\s+/)]),
+          ),
+        }),
       })
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
@@ -38,7 +55,7 @@ export default function SettingsPage() {
         return
       }
       const body = await res.json()
-      if (body.config) setConfig(body.config)
+      if (body.config) applyConfig(body.config)
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     } catch {
@@ -82,7 +99,8 @@ export default function SettingsPage() {
             <div className="space-y-2">
               <label className="text-xs text-white/40">Git repositories that sessions can run in (isolated worktree)</label>
               {config.repos.map((repo, i) => (
-                <div key={i} className="flex gap-2 items-center">
+                <div key={i} className="space-y-1.5">
+                <div className="flex gap-2 items-center">
                   <GitBranch className="h-4 w-4 text-white/30 shrink-0" />
                   <input
                     type="text"
@@ -97,11 +115,23 @@ export default function SettingsPage() {
                   <button
                     type="button"
                     aria-label={`Remove repository ${i + 1}`}
-                    onClick={() => setConfig((c) => ({ ...c, repos: c.repos.filter((_, j) => j !== i) }))}
+                    onClick={() => {
+                      setConfig((c) => ({ ...c, repos: c.repos.filter((_, j) => j !== i) }))
+                      setVerifyText((v) => v.filter((_, j) => j !== i))
+                    }}
                     className="h-8 w-8 flex items-center justify-center rounded text-white/40 hover:text-white hover:bg-white/10"
                   >
                     <X className="h-4 w-4" />
                   </button>
+                </div>
+                <input
+                  type="text"
+                  value={verifyText[i] ?? ""}
+                  aria-label={`Verify command for repository ${i + 1}`}
+                  onChange={(e) => setVerifyText((v) => { const n = [...v]; n[i] = e.target.value; return n })}
+                  placeholder="Verify command before merge, e.g. npm test (optional)"
+                  className="ml-6 w-[calc(100%-1.5rem)] bg-white/5 border border-white/10 rounded-md px-3 py-1.5 text-xs text-white placeholder:text-white/20 outline-none focus:ring-1 focus:ring-blue-500/50 font-mono"
+                />
                 </div>
               ))}
               <button
@@ -112,7 +142,7 @@ export default function SettingsPage() {
                 <Plus className="h-3.5 w-3.5" /> Add repository
               </button>
               <p className="text-xs text-white/30">
-                Absolute path to a repository root. Each isolated session gets its own branch and worktree under ~/.ai-orc/worktrees; your checkout is never touched.
+                Absolute path to a repository root. With a verify command set (program and arguments, no shell), a session can only be merged after that command passes in its worktree on the exact diff you approve. Each isolated session gets its own branch and worktree under ~/.ai-orc/worktrees; your checkout is never touched.
               </p>
             </div>
           </div>

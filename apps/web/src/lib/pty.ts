@@ -2,6 +2,7 @@ import * as pty from "node-pty"
 import type { WebSocket } from "ws"
 import type { WsMessage } from "@/types"
 import { getConfig, getTools } from "@/lib/db"
+import { DoomLoopDetector } from "@/lib/doomLoop"
 import { createWorktree, findWorktree, repoIdFor, validateRepo, WorktreeError } from "@/lib/worktree"
 
 interface PtyEntry {
@@ -37,7 +38,12 @@ export function spawnPty(id: string, command: string, args: string[], ws: WebSoc
 
   ptyMap.set(id, { process: proc, clientWs: ws })
 
-  proc.onData((data) => send(ws, { type: "terminal:output", id, data }))
+  const loops = new DoomLoopDetector()
+  proc.onData((data) => {
+    send(ws, { type: "terminal:output", id, data })
+    const warning = loops.feed(data)
+    if (warning) send(ws, { type: "terminal:warning", id, data: warning })
+  })
   proc.onExit(({ exitCode }) => {
     send(ws, { type: "terminal:exit", id, code: exitCode })
     ptyMap.delete(id)

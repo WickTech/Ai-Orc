@@ -16,7 +16,7 @@ const WsContext = createContext<WsContextValue>({ send: () => {}, subscribe: () 
 export function WebSocketProvider({ children }: { children: ReactNode }) {
   const wsRef = useRef<WebSocket | null>(null)
   const handlersRef = useRef(new Set<Handler>())
-  const { updateTerminalStatus, setTerminalWorktree } = useStore()
+  const { updateTerminalStatus, setTerminalWorktree, setTerminalWarning } = useStore()
 
   useEffect(() => {
     // Match the page scheme: an unencrypted socket URL is blocked as mixed content
@@ -33,6 +33,9 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
       if (msg.type === "terminal:worktree" && msg.id && msg.branch && msg.path) {
         setTerminalWorktree(msg.id, msg.branch, msg.path)
       }
+      if (msg.type === "terminal:warning" && msg.id && msg.data) {
+        setTerminalWarning(msg.id, msg.data)
+      }
       handlersRef.current.forEach((fn) => fn(msg))
     }
 
@@ -41,7 +44,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     return () => {
       ws.close()
     }
-  }, [updateTerminalStatus, setTerminalWorktree])
+  }, [updateTerminalStatus, setTerminalWorktree, setTerminalWarning])
 
   const send = useCallback((msg: WsMessage) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {

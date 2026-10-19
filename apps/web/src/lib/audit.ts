@@ -2,7 +2,7 @@ import { promises as fs } from "fs"
 import os from "os"
 import path from "path"
 
-export type AuditAction = "merged" | "merge-refused" | "rejected" | "removed"
+export type AuditAction = "merged" | "merge-refused" | "rejected" | "removed" | "verified" | "verify-failed"
 
 export interface AuditEntry {
   at: string
