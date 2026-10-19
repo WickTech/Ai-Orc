@@ -29,6 +29,8 @@ Add git repositories under **Settings → Repositories**, then pick one in the *
 - The browser never sends a path: the WebSocket message carries a repo id, and the server only honours ids of repos in your saved config. Each repo must be an existing git repository root and not `/` or your home folder.
 - Worktrees and branches are kept after a session ends. The **Worktrees** page shows branch, uncommitted changes and commit count, and removes one (deleting its branch). Removing one with uncommitted or unmerged work needs an explicit confirmation.
 - Restarting a terminal reuses its worktree.
+- **Review and approval:** the Worktrees page has a **Review** button showing the changed files and the full diff (new files included). **Approve & merge** commits the session's work and merges it into the branch checked out in the main repo with a merge commit (`--no-ff`). Approval is bound to the exact diff you reviewed: if the agent changes anything afterwards, the merge is refused and you must review again. It also refuses a dirty main checkout, a detached HEAD, an empty diff, and a conflicting merge (which is aborted, leaving main clean and the session intact). After a successful merge the session worktree and branch are removed. Nothing merges without this explicit approval.
+- **Audit log:** merges, refused merges, rejections and removals are appended as JSON lines to `~/.ai-orc/audit.log` (newest 20 shown on the Worktrees page, `GET /api/audit`). Your repository's own git hooks run on the commit and merge, as they would for you.
 - All git calls use argument arrays without a shell.
 
 ---

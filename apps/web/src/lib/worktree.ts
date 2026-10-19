@@ -4,7 +4,13 @@ import { promises as fs } from "fs"
 import os from "os"
 import path from "path"
 
-export class WorktreeError extends Error {}
+export type WorktreeErrorCode = "invalid" | "not_found" | "conflict"
+
+export class WorktreeError extends Error {
+  constructor(message: string, readonly code: WorktreeErrorCode = "invalid") {
+    super(message)
+  }
+}
 
 export interface WorktreeInfo {
   id: string
@@ -53,6 +59,8 @@ async function git(cwd: string, args: string[]): Promise<string> {
     })
   })
 }
+
+export { git as runGit }
 
 function assertSlug(value: string, what: string): void {
   if (typeof value !== "string" || !SLUG_RE.test(value)) {
@@ -128,13 +136,16 @@ export async function createWorktree(opts: { repoPath: string; sessionId: string
   // Tracked changes would not appear in the new worktree, which is confusing
   // for the agent and for the person reviewing; untracked files do not matter.
   if ((await git(repoPath, ["status", "--porcelain", "--untracked-files=no"])) !== "") {
-    throw new WorktreeError("The repository has uncommitted changes: commit or stash them before starting an isolated session")
+    throw new WorktreeError(
+      "The repository has uncommitted changes: commit or stash them before starting an isolated session",
+      "conflict",
+    )
   }
 
   const repoId = repoIdFor(repoPath)
   const dir = worktreePath(repoId, opts.sessionId)
   if ((await readMeta(repoId, opts.sessionId)) || (await exists(dir))) {
-    throw new WorktreeError(`A worktree for session "${opts.sessionId}" already exists`)
+    throw new WorktreeError(`A worktree for session "${opts.sessionId}" already exists`, "conflict")
   }
 
   const branch = `axion/${opts.toolId}-${opts.sessionId}`
@@ -190,11 +201,11 @@ export async function removeWorktree(repoInput: string, id: string, opts: { forc
   const repoPath = await validateRepo(repoInput)
   const repoId = repoIdFor(repoPath)
   const meta = await readMeta(repoId, id)
-  if (!meta) throw new WorktreeError(`Worktree session "${id}" not found`)
+  if (!meta) throw new WorktreeError(`Worktree session "${id}" not found`, "not_found")
 
   const status = await statusOf(repoPath, repoId, meta)
   if (!opts.force && (status.dirty || status.ahead > 0)) {
-    throw new WorktreeError("Worktree has uncommitted or unmerged work; remove with force to discard it")
+    throw new WorktreeError("Worktree has uncommitted or unmerged work; remove with force to discard it", "conflict")
   }
 
   if (status.exists) await git(repoPath, ["worktree", "remove", "--force", status.path])
