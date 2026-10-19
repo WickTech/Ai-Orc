@@ -47,8 +47,8 @@ Any of these you have installed will work immediately. Add more via the Registry
 ```bash
 git clone https://github.com/WickTech/Ai-Orc
 cd Ai-Orc
-npm install
-npm run dev
+npm install    # installs every workspace from the repo root
+npm run dev    # starts apps/web
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
@@ -86,8 +86,19 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Architecture
 
+This repository is a monorepo (npm workspaces):
+
 ```
-Ai-Orc/
+├── apps/web/              # The web app described in this README
+├── packages/core/         # AXION mission control: read-only dashboard + approval-gated orchestrator
+│                          # (zero-dependency Node ESM; see packages/core/README.md)
+└── package.json           # Workspace root: npm run dev | test | lint | typecheck | build | validate
+```
+
+The web app (`apps/web`):
+
+```
+apps/web/
 ├── server.ts              # Custom server: Next.js + WebSocket on same port
 ├── src/
 │   ├── app/               # Next.js App Router pages + API routes

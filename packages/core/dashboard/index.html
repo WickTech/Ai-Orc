@@ -1,0 +1,1080 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AXION</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    height: 100vh;
+    background: #030912;
+    color: #b6f4ff;
+    font-family: "Courier New", ui-monospace, monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  * { box-sizing: border-box; }
+  #boot {
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    background: #010509;
+    color: #33e6ff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+    letter-spacing: 0.4em;
+  }
+  #boot[hidden] { display: none; }
+  #hud {
+    display: grid;
+    height: 100vh;
+    grid-template-columns: 320px 1fr 320px;
+    grid-template-rows: 76px minmax(0, 1fr) minmax(190px, 26vh);
+    grid-template-areas:
+      "header header header"
+      "left center right"
+      "bottom bottom bottom";
+    gap: 10px;
+    padding: 10px;
+  }
+  #header { grid-area: header; display: flex; align-items: center; gap: 18px; border-bottom: 1px solid #0d5566; flex-wrap: wrap; }
+  #left-col { grid-area: left; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+  #center-col { grid-area: center; display: flex; align-items: center; justify-content: center; min-height: 0; }
+  #right-col { grid-area: right; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+  #bottom-row { grid-area: bottom; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; min-height: 0; }
+  .panel {
+    background: rgba(6, 32, 48, 0.55);
+    border: 1px solid #0d5566;
+    box-shadow: 0 0 12px rgba(51, 230, 255, 0.08) inset;
+    border-radius: 4px;
+    padding: 8px 10px;
+    overflow: auto;
+    flex: 1;
+    min-height: 0;
+  }
+  .panel h2 { font-size: 0.85rem; margin: 0 0 6px; color: #33e6ff; }
+  .metric-row { display: flex; justify-content: space-between; gap: 6px; font-size: 0.78rem; padding: 2px 0; }
+  .metric-meta { font-size: 0.6rem; color: #4a8fa3; margin-left: 4px; }
+  .metric-unavailable { color: #ffb020; }
+  .panel-meta { font-size: 0.6rem; color: #4a8fa3; margin-bottom: 4px; }
+  .repo-row, .project-row, .thread-row { font-size: 0.68rem; padding: 2px 0; border-top: 1px solid #0d3646; }
+  #title-block { display: flex; flex-direction: column; }
+  #title-block [data-hud="title"] { font-size: 1.4rem; color: #33e6ff; text-shadow: 0 0 8px #33e6ff; }
+  #title-block [data-hud="subtitle"] { font-size: 0.55rem; color: #6fb9c8; }
+  #clocks { display: flex; flex-direction: column; font-size: 0.7rem; }
+  #pills { display: flex; gap: 6px; flex-wrap: wrap; }
+  .pill { border: 1px solid #0d5566; padding: 2px 6px; border-radius: 10px; font-size: 0.6rem; }
+  #status-banner { font-size: 0.65rem; color: #ffb020; margin-left: auto; }
+  #orb { background: radial-gradient(circle at center, #04263a 0%, #010509 75%); border-radius: 50%; }
+  #waveform { width: 100%; height: 60px; background: #010509; }
+  #radar { width: 100%; height: 160px; }
+  #radar .ring { fill: none; stroke: #0d5566; }
+  [data-blip] { fill: #33e6ff; }
+  [data-alert] { font-size: 0.68rem; padding: 3px 0; border-bottom: 1px solid #0d3646; }
+  .alert-critical { color: #ff4d4d; }
+  .alert-warning { color: #ffb020; }
+  .rec { font-size: 0.68rem; margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid #0d3646; }
+  [data-followup] { font-size: 0.66rem; padding: 2px 0; }
+  .objective-row { margin-bottom: 6px; }
+  .progress-bar { background: #0d3646; height: 8px; border-radius: 4px; overflow: hidden; }
+  .progress-fill { background: #33e6ff; height: 100%; }
+  .progress-bar-unavailable { height: auto; color: #ffb020; font-size: 0.55rem; padding: 1px 4px; background: transparent; border: 1px dashed #ffb020; }
+  #cmd-bar { position: fixed; left: 10px; right: 10px; bottom: 8px; display: flex; gap: 8px; align-items: flex-end; z-index: 5; }
+  #cmd-input { flex: 0 0 260px; background: #010509; color: #b6f4ff; border: 1px solid #0d5566; padding: 4px; font-family: inherit; text-transform: none; }
+  #cmd-log { flex: 1; max-height: 70px; overflow: auto; font-size: 0.6rem; color: #6fb9c8; }
+  button { background: #04263a; color: #33e6ff; border: 1px solid #0d5566; padding: 4px 8px; font-family: inherit; cursor: pointer; font-size: 0.65rem; }
+  button[disabled] { opacity: 0.5; cursor: not-allowed; }
+</style>
+</head>
+<body>
+  <div id="boot">A.X.I.O.N. BOOTING</div>
+  <div id="hud">
+    <header id="header">
+      <div id="title-block">
+        <span data-hud="title">A.X.I.O.N.</span>
+        <span data-hud="subtitle">ADAPTIVE EXECUTIVE INTELLIGENCE &amp; OPERATIONS NETWORK</span>
+      </div>
+      <div id="clocks">
+        <span id="clock-utc">UTC 00:00:00</span>
+        <span id="clock-local">LOCAL 00:00:00</span>
+      </div>
+      <div id="pills">
+        <span class="pill" data-pill="github"></span>
+        <span class="pill" data-pill="vercel"></span>
+        <span class="pill" data-pill="gmail"></span>
+        <span class="pill" data-pill="supabase"></span>
+        <span class="pill" data-pill="advisor"></span>
+        <span class="pill" data-pill="research"></span>
+        <span class="pill" data-pill="orchestrator"></span>
+      </div>
+      <button id="brief-btn" type="button">MORNING BRIEF</button>
+      <button id="voice-btn" type="button">ENGAGE VOICE</button>
+      <div id="status-banner"></div>
+    </header>
+
+    <div id="left-col">
+      <section class="panel" id="panel-github">
+        <h2>SYSTEM VITALS</h2>
+        <div class="panel-meta" id="github-meta"></div>
+        <div class="metric-row"><span>REPOS</span><span><span data-metric="github.totals.reposTracked"></span><span class="metric-meta"></span></span></div>
+        <div class="metric-row"><span>COMMITS 7D</span><span><span data-metric="github.totals.commits7d"></span><span class="metric-meta"></span></span></div>
+        <div class="metric-row"><span>OPEN PRS</span><span><span data-metric="github.totals.openPRs"></span><span class="metric-meta"></span></span></div>
+        <div class="metric-row"><span>OPEN ISSUES</span><span><span data-metric="github.totals.openIssues"></span><span class="metric-meta"></span></span></div>
+        <div class="metric-row"><span>FAILING CI</span><span><span data-metric="github.totals.failingCI"></span><span class="metric-meta"></span></span></div>
+        <div id="github-repos"></div>
+      </section>
+
+      <section class="panel" id="panel-vercel">
+        <h2>TELEMETRY</h2>
+        <div class="panel-meta" id="vercel-meta"></div>
+        <div class="metric-row"><span>PROJECTS</span><span><span data-metric="vercel.totals.projects"></span><span class="metric-meta"></span></span></div>
+        <div class="metric-row"><span>DEPLOYS 24H</span><span><span data-metric="vercel.totals.deploys24h"></span><span class="metric-meta"></span></span></div>
+        <div class="metric-row"><span>FAILED 24H</span><span><span data-metric="vercel.totals.failed24h"></span><span class="metric-meta"></span></span></div>
+        <div id="vercel-projects"></div>
+      </section>
+
+      <section class="panel" id="panel-orchestrator">
+        <h2>ORCHESTRATOR</h2>
+        <div id="orchestrator-lastrun"></div>
+        <div class="metric-row"><span>STEPS</span><span><span data-metric="orchestrator.totals.steps"></span><span class="metric-meta"></span></span></div>
+        <div class="metric-row"><span>AUTO</span><span><span data-metric="orchestrator.totals.auto"></span><span class="metric-meta"></span></span></div>
+        <div class="metric-row"><span>APPROVED</span><span><span data-metric="orchestrator.totals.approved"></span><span class="metric-meta"></span></span></div>
+        <div class="metric-row"><span>DENIED</span><span><span data-metric="orchestrator.totals.denied"></span><span class="metric-meta"></span></span></div>
+        <div class="metric-row"><span>SKIPPED</span><span><span data-metric="orchestrator.totals.skipped"></span><span class="metric-meta"></span></span></div>
+        <div class="metric-row"><span>FAILED</span><span><span data-metric="orchestrator.totals.failed"></span><span class="metric-meta"></span></span></div>
+      </section>
+    </div>
+
+    <div id="center-col">
+      <canvas id="orb" width="420" height="420"></canvas>
+    </div>
+
+    <div id="right-col">
+      <section class="panel" id="panel-gmail">
+        <h2>PROXIMITY RADAR</h2>
+        <div class="panel-meta" id="gmail-meta"></div>
+        <div class="metric-row"><span>UNREAD</span><span><span data-metric="gmail.totals.unread"></span><span class="metric-meta"></span></span></div>
+        <div class="metric-row"><span>IMPORTANT</span><span><span data-metric="gmail.totals.importantUnread"></span><span class="metric-meta"></span></span></div>
+        <svg id="radar" viewBox="0 0 200 200">
+          <circle class="ring" cx="100" cy="100" r="90"></circle>
+          <circle class="ring" cx="100" cy="100" r="50"></circle>
+        </svg>
+      </section>
+
+      <section class="panel" id="panel-audio">
+        <h2>AUDIO I/O</h2>
+        <canvas id="waveform" width="280" height="60"></canvas>
+      </section>
+
+      <section class="panel" id="panel-diagnostics">
+        <h2>DIAGNOSTICS</h2>
+        <div id="alerts-list"></div>
+        <div class="panel-meta" id="supabase-meta"></div>
+        <div class="metric-row"><span>SUPABASE PROJECTS</span><span><span data-metric="supabase.totals.projects"></span><span class="metric-meta"></span></span></div>
+        <div class="metric-row"><span>SEC ADVISORS</span><span><span data-metric="supabase.totals.securityAdvisors"></span><span class="metric-meta"></span></span></div>
+        <div class="metric-row"><span>PERF ADVISORS</span><span><span data-metric="supabase.totals.performanceAdvisors"></span><span class="metric-meta"></span></span></div>
+        <div id="supabase-projects"></div>
+      </section>
+    </div>
+
+    <div id="bottom-row">
+      <section class="panel" id="panel-objective">
+        <h2 id="objective-title"></h2>
+        <div id="objective-targets"></div>
+      </section>
+
+      <section class="panel" id="panel-advisor">
+        <h2>ADVISOR TOP-3</h2>
+        <div class="panel-meta" id="advisor-meta"></div>
+        <div id="advisor-recs"></div>
+        <h2>FOLLOW-UPS</h2>
+        <div id="advisor-followups"></div>
+      </section>
+
+      <section class="panel" id="panel-research">
+        <h2>LATEST RESEARCH</h2>
+        <div class="panel-meta" id="research-meta"></div>
+        <div id="research-topic"></div>
+        <div id="research-summary"></div>
+        <div class="metric-row"><span>SOURCES</span><span><span data-metric="research.sourceCount"></span><span class="metric-meta"></span></span></div>
+        <div id="research-unavailable" hidden></div>
+      </section>
+    </div>
+  </div>
+
+  <div id="cmd-bar">
+    <input id="cmd-input" type="text" placeholder="type a command, press enter" autocomplete="off" />
+    <div id="cmd-log"></div>
+  </div>
+
+<script>
+// ---------------------------------------------------------------------
+// MOCK_DATA: the single source of mock numbers shown when there is no
+// live data/mission-control.json, or when it fails to load or validate.
+// It mirrors the full mission-control schema (schemaVersion 1) and every
+// source string is the literal "MOCK".
+// ---------------------------------------------------------------------
+const MOCK_DATA = {
+  schemaVersion: 1,
+  generatedAt: "2026-09-27T08:00:00Z",
+  dataMode: "mock",
+  alerts: [
+    { metric: "github.totals.failingCI", message: "Failing CI: 1 (threshold >0)", severity: "critical", source: "MOCK", asOf: "2026-09-27T08:00:00Z" },
+    { metric: "vercel.totals.deploys24h", message: "vercel.totals.deploys24h changed +50% vs 7-day average 4.0 (3 snapshots)", severity: "warning", source: "MOCK", asOf: "2026-09-27T08:00:00Z" }
+  ],
+  objective: {
+    title: "KEEP THE FLEET GREEN",
+    targets: [
+      { id: "ci", label: "FAILING CI", metricRef: "github.totals.failingCI", comparator: "atMost", target: 0,
+        current: { value: 1, status: "OK", source: "MOCK", asOf: "2026-09-27T08:00:00Z", reason: null }, progress: 0 },
+      { id: "deploys", label: "FAILED DEPLOYS 24H", metricRef: "vercel.totals.failed24h", comparator: "atMost", target: 0,
+        current: { value: 1, status: "OK", source: "MOCK", asOf: "2026-09-27T08:00:00Z", reason: null }, progress: 0 },
+      { id: "inbox", label: "IMPORTANT UNREAD", metricRef: "gmail.totals.importantUnread", comparator: "atMost", target: 5,
+        current: { value: 3, status: "OK", source: "MOCK", asOf: "2026-09-27T08:00:00Z", reason: null }, progress: 1 },
+      { id: "db", label: "SUPABASE SECURITY ADVISORS", metricRef: "supabase.totals.securityAdvisors", comparator: "atMost", target: 0,
+        current: { value: 2, status: "OK", source: "MOCK", asOf: "2026-09-27T08:00:00Z", reason: null }, progress: 0 }
+    ]
+  },
+  github: {
+    status: "OK", source: "MOCK", asOf: "2026-09-27T08:00:00Z", reason: null,
+    totals: {
+      reposTracked: { value: 5, status: "OK", source: "MOCK", asOf: "2026-09-27T08:00:00Z", reason: null },
+      commits7d: { value: 42, status: "OK", source: "MOCK", asOf: "2026-09-27T08:00:00Z", reason: null },
+      openPRs: { value: 3, status: "OK", source: "MOCK", asOf: "2026-09-27T08:00:00Z", reason: null },
+      openIssues: { value: 7, status: "OK", source: "MOCK", asOf: "2026-09-27T08:00:00Z", reason: null },
+      failingCI: { value: 1, status: "OK", source: "MOCK", asOf: "2026-09-27T08:00:00Z", reason: null }
+    },
+    repos: [
+      { name: "demo-app", url: "https://github.com/example-org/demo-app", lastPushAt: "2026-09-26T12:00:00Z", commits7d: 20, openPRs: 2, openIssues: 4, ci: "failure" },
+      { name: "sample-service", url: "https://github.com/example-org/sample-service", lastPushAt: "2026-09-25T09:00:00Z", commits7d: 22, openPRs: 1, openIssues: 3, ci: "success" }
+    ]
+  },
+  vercel: {
+    status: "OK", source: "MOCK", asOf: "2026-09-27T08:00:00Z", reason: null,
+    totals: {
+      projects: { value: 4, status: "OK", source: "MOCK", asOf: "2026-09-27T08:00:00Z", reason: null },
+      deploys24h: { value: 6, status: "OK", source: "MOCK", asOf: "2026-09-27T08:00:00Z", reason: null },
+      failed24h: { value: 1, status: "OK", source: "MOCK", asOf: "2026-09-27T08:00:00Z", reason: null }
+    },
+    projects: [
+      { name: "demo-app", state: "READY", url: "https://demo-app.vercel.app", deployedAt: "2026-09-27T07:00:00Z", error: null },
+      { name: "sample-service", state: "ERROR", url: null, deployedAt: "2026-09-27T06:00:00Z", error: "Build failed" }
+    ]
+  },
+  gmail: {
+    status: "OK", source: "MOCK", asOf: "2026-09-27T08:00:00Z", reason: null,
+    totals: {
+      unread: { value: 12, status: "OK", source: "MOCK", asOf: "2026-09-27T08:00:00Z", reason: null },
+      importantUnread: { value: 3, status: "OK", source: "MOCK", asOf: "2026-09-27T08:00:00Z", reason: null }
+    },
+    topThreads: [
+      { from: "ci-bot@example.com", subject: "CI failing on demo-app", receivedAt: "2026-09-27T07:30:00Z", important: true },
+      { from: "deploy-bot@example.com", subject: "Deployment failed: sample-service", receivedAt: "2026-09-27T06:10:00Z", important: true },
+      { from: "newsletter@example.com", subject: "Weekly digest", receivedAt: "2026-09-26T09:00:00Z", important: false }
+    ]
+  },
+  supabase: {
+    status: "OK", source: "MOCK", asOf: "2026-09-27T08:00:00Z", reason: null,
+    totals: {
+      projects: { value: 3, status: "OK", source: "MOCK", asOf: "2026-09-27T08:00:00Z", reason: null },
+      securityAdvisors: { value: 2, status: "OK", source: "MOCK", asOf: "2026-09-27T08:00:00Z", reason: null },
+      performanceAdvisors: { value: 1, status: "OK", source: "MOCK", asOf: "2026-09-27T08:00:00Z", reason: null }
+    },
+    projects: [
+      { name: "demo-db", ref: "abcdef", status: "ACTIVE_HEALTHY", securityAdvisors: 2, performanceAdvisors: 1 }
+    ]
+  },
+  advisor: {
+    status: "OK", source: "MOCK", asOf: "2026-09-27T08:00:00Z", reason: null,
+    recommendations: [
+      { rank: 1, category: "blocker", action: "Fix failing CI on demo-app before merging further pull requests.", evidence: "1 failing CI run (MOCK, 2026-09-27T08:00:00Z)", risk: "Broken main branch blocks all merges this week" },
+      { rank: 2, category: "outperforming", action: "Ship the sample-service deploy fix while deploy velocity is high.", evidence: "6 deploys in 24h (MOCK, 2026-09-27T08:00:00Z)", risk: "Momentum lost if delayed" },
+      { rank: 3, category: "degrading", action: "Clear the 3 important unread emails before they age further.", evidence: "3 important unread (MOCK, 2026-09-27T08:00:00Z)", risk: "Sender may escalate without a reply" }
+    ],
+    followUps: [
+      { date: "2026-09-20", action: "Review demo-db security advisories", ageDays: 7 }
+    ]
+  },
+  research: {
+    status: "OK", source: "MOCK", asOf: "2026-09-26T10:00:00Z", reason: null,
+    topic: "Edge caching strategies for Next.js 15",
+    slug: "edge-caching-strategies-for-next-js-15",
+    generatedAt: "2026-09-26T10:00:00Z",
+    summary: "Next.js 15 edge caching favors per-route revalidate tags; three independent sources confirm stale-while-revalidate defaults changed.",
+    sourceCount: { value: 3, status: "OK", source: "MOCK", asOf: "2026-09-26T10:00:00Z", reason: null }
+  },
+  orchestrator: {
+    status: "OK", source: "MOCK", asOf: "2026-09-27T08:00:00Z", reason: null,
+    lastRun: { task: "morning briefing", startedAt: "2026-09-27T07:00:00Z", outcome: "COMPLETED" },
+    totals: {
+      steps: { value: 2, status: "OK", source: "MOCK", asOf: "2026-09-27T08:00:00Z", reason: null },
+      auto: { value: 2, status: "OK", source: "MOCK", asOf: "2026-09-27T08:00:00Z", reason: null },
+      approved: { value: 0, status: "OK", source: "MOCK", asOf: "2026-09-27T08:00:00Z", reason: null },
+      denied: { value: 0, status: "OK", source: "MOCK", asOf: "2026-09-27T08:00:00Z", reason: null },
+      skipped: { value: 0, status: "OK", source: "MOCK", asOf: "2026-09-27T08:00:00Z", reason: null },
+      failed: { value: 0, status: "OK", source: "MOCK", asOf: "2026-09-27T08:00:00Z", reason: null }
+    }
+  }
+};
+</script>
+<script>
+(function () {
+  'use strict';
+
+  const REQUIRED_SECTIONS = ['github', 'vercel', 'gmail', 'supabase', 'advisor', 'research', 'orchestrator'];
+  const BOOT_MS_DEFAULT = 1500;
+
+  function safeMatchMedia(query) {
+    try {
+      return Boolean(window.matchMedia && window.matchMedia(query).matches);
+    } catch {
+      return false;
+    }
+  }
+
+  let urlHasTest = false;
+  try {
+    urlHasTest = new URLSearchParams(window.location.search).has('test');
+  } catch {
+    urlHasTest = false;
+  }
+  const reducedMotion = safeMatchMedia('(prefers-reduced-motion: reduce)');
+  const bootMs = (urlHasTest || reducedMotion) ? 0 : BOOT_MS_DEFAULT;
+
+  let currentData = MOCK_DATA;
+  function getData() { return currentData; }
+
+  function resolvePath(data, ref) {
+    const parts = String(ref).split('.');
+    let cur = data;
+    for (const p of parts) {
+      if (cur === null || cur === undefined) return null;
+      cur = cur[p];
+    }
+    return cur === undefined ? null : cur;
+  }
+
+  function setBanner(text) {
+    const el = document.getElementById('status-banner');
+    if (el) el.textContent = text;
+  }
+
+  function renderMetric(el, metric) {
+    if (!el) return;
+    if (!metric || metric.status === 'UNAVAILABLE') {
+      el.textContent = 'UNAVAILABLE';
+      el.classList.add('metric-unavailable');
+      el.title = (metric && metric.reason) || 'unavailable';
+    } else {
+      el.textContent = String(metric.value);
+      el.classList.remove('metric-unavailable');
+      el.title = '';
+    }
+    const meta = el.nextElementSibling;
+    if (meta && meta.classList && meta.classList.contains('metric-meta')) {
+      meta.textContent = (metric && metric.status === 'OK') ? `(${metric.source} · ${metric.asOf})` : '';
+    }
+  }
+
+  function renderMetrics(data) {
+    document.querySelectorAll('[data-metric]').forEach((el) => {
+      const ref = el.getAttribute('data-metric');
+      renderMetric(el, resolvePath(data, ref));
+    });
+  }
+
+  function renderPills(data) {
+    document.querySelectorAll('[data-pill]').forEach((el) => {
+      const name = el.getAttribute('data-pill');
+      if (!REQUIRED_SECTIONS.includes(name)) return;
+      if (data.dataMode === 'mock') {
+        el.textContent = 'MOCK';
+      } else {
+        el.textContent = (data[name] && data[name].status) || 'UNAVAILABLE';
+      }
+    });
+  }
+
+  function setPanelMeta(id, section) {
+    const el = document.getElementById(id);
+    if (el && section) el.textContent = `${section.source} · ${section.asOf}`;
+  }
+
+  function renderGithubRepos(section) {
+    const container = document.getElementById('github-repos');
+    if (!container) return;
+    container.innerHTML = '';
+    for (const repo of section.repos || []) {
+      const row = document.createElement('div');
+      row.className = 'repo-row';
+      const prs = repo.openPRs === null || repo.openPRs === undefined ? 'UNAVAILABLE' : repo.openPRs;
+      const issues = repo.openIssues === null || repo.openIssues === undefined ? 'UNAVAILABLE' : repo.openIssues;
+      row.textContent = `${repo.name} · CI:${repo.ci} · PRs:${prs} · Issues:${issues}`;
+      container.appendChild(row);
+    }
+  }
+
+  function renderVercelProjects(section) {
+    const container = document.getElementById('vercel-projects');
+    if (!container) return;
+    container.innerHTML = '';
+    for (const p of section.projects || []) {
+      const row = document.createElement('div');
+      row.className = 'project-row';
+      row.textContent = `${p.name} · ${p.state}${p.error ? ' · ' + p.error : ''}`;
+      container.appendChild(row);
+    }
+  }
+
+  function renderSupabaseProjects(section) {
+    const container = document.getElementById('supabase-projects');
+    if (!container) return;
+    container.innerHTML = '';
+    for (const p of section.projects || []) {
+      const row = document.createElement('div');
+      row.className = 'project-row';
+      const sec = (p.securityAdvisors === null || p.securityAdvisors === undefined) ? 'UNAVAILABLE' : p.securityAdvisors;
+      const perf = (p.performanceAdvisors === null || p.performanceAdvisors === undefined) ? 'UNAVAILABLE' : p.performanceAdvisors;
+      row.textContent = `${p.name} · ${p.status} · sec:${sec} perf:${perf}`;
+      container.appendChild(row);
+    }
+  }
+
+  function renderRadar(section) {
+    const svg = document.getElementById('radar');
+    if (!svg) return;
+    svg.querySelectorAll('[data-blip]').forEach((el) => el.remove());
+    const threads = (section.topThreads || []).slice(0, 5);
+    const n = threads.length;
+    threads.forEach((t, i) => {
+      const angle = (i / Math.max(n, 1)) * Math.PI * 2;
+      const radius = t.important ? 50 : 90;
+      const cx = 100 + radius * Math.cos(angle);
+      const cy = 100 + radius * Math.sin(angle);
+      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      circle.setAttribute('cx', String(cx));
+      circle.setAttribute('cy', String(cy));
+      circle.setAttribute('r', '5');
+      circle.setAttribute('data-blip', '');
+      const titleEl = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+      titleEl.textContent = `${t.from}: ${t.subject}`;
+      circle.appendChild(titleEl);
+      svg.appendChild(circle);
+    });
+  }
+
+  function renderAdvisor(section) {
+    setPanelMeta('advisor-meta', section);
+    const recsEl = document.getElementById('advisor-recs');
+    const fuEl = document.getElementById('advisor-followups');
+    if (recsEl) {
+      recsEl.innerHTML = '';
+      if (section.status === 'OK') {
+        for (const rec of section.recommendations) {
+          const div = document.createElement('div');
+          div.setAttribute('data-rec-rank', String(rec.rank));
+          div.className = `rec rec-${rec.category}`;
+          const strong = document.createElement('strong');
+          strong.textContent = `${rec.rank}. [${rec.category.toUpperCase()}] `;
+          div.appendChild(strong);
+          div.appendChild(document.createTextNode(rec.action));
+          const evidence = document.createElement('div');
+          evidence.textContent = rec.evidence;
+          const risk = document.createElement('div');
+          risk.textContent = `Risk: ${rec.risk}`;
+          div.appendChild(evidence);
+          div.appendChild(risk);
+          recsEl.appendChild(div);
+        }
+      } else {
+        const div = document.createElement('div');
+        div.className = 'metric-unavailable';
+        div.textContent = 'UNAVAILABLE';
+        div.title = section.reason || '';
+        recsEl.appendChild(div);
+      }
+    }
+    if (fuEl) {
+      fuEl.innerHTML = '';
+      const followUps = section.followUps || [];
+      if (section.status !== 'OK' || followUps.length === 0) {
+        fuEl.textContent = 'NO PENDING FOLLOW-UPS';
+      } else {
+        for (const f of followUps) {
+          const div = document.createElement('div');
+          div.setAttribute('data-followup', '');
+          div.textContent = `${f.action} (${f.ageDays}d)`;
+          fuEl.appendChild(div);
+        }
+      }
+    }
+  }
+
+  function renderResearch(section) {
+    const metaEl = document.getElementById('research-meta');
+    const topicEl = document.getElementById('research-topic');
+    const summaryEl = document.getElementById('research-summary');
+    const unavailEl = document.getElementById('research-unavailable');
+    if (metaEl) metaEl.textContent = `${section.source} · ${section.asOf}`;
+    if (section.status === 'OK') {
+      if (topicEl) topicEl.textContent = section.topic;
+      if (summaryEl) summaryEl.textContent = section.summary;
+      if (unavailEl) { unavailEl.hidden = true; unavailEl.textContent = ''; }
+    } else {
+      if (topicEl) topicEl.textContent = '';
+      if (summaryEl) summaryEl.textContent = '';
+      if (unavailEl) {
+        unavailEl.hidden = false;
+        unavailEl.textContent = 'UNAVAILABLE';
+        unavailEl.title = section.reason || '';
+        unavailEl.classList.add('metric-unavailable');
+      }
+    }
+  }
+
+  function renderOrchestrator(section) {
+    const el = document.getElementById('orchestrator-lastrun');
+    if (!el) return;
+    if (section.status === 'OK') {
+      el.classList.remove('metric-unavailable');
+      el.title = '';
+      el.textContent = section.lastRun
+        ? `${section.lastRun.task} — ${section.lastRun.startedAt} — ${section.lastRun.outcome}`
+        : 'No runs yet.';
+    } else {
+      el.classList.add('metric-unavailable');
+      el.title = section.reason || '';
+      el.textContent = 'UNAVAILABLE';
+    }
+  }
+
+  function renderObjective(data) {
+    const titleEl = document.getElementById('objective-title');
+    const container = document.getElementById('objective-targets');
+    if (titleEl) titleEl.textContent = (data.objective && data.objective.title) || '';
+    if (!container) return;
+    container.innerHTML = '';
+    for (const t of (data.objective && data.objective.targets) || []) {
+      const row = document.createElement('div');
+      row.className = 'objective-row';
+      const label = document.createElement('div');
+      const isUnavailable = !t.current || t.current.status === 'UNAVAILABLE';
+      const valueText = isUnavailable ? 'UNAVAILABLE' : t.current.value;
+      label.appendChild(document.createTextNode(`${t.label}: ${valueText} / ${t.target}`));
+      if (isUnavailable) {
+        label.classList.add('metric-unavailable');
+        label.title = (t.current && t.current.reason) || '';
+      } else {
+        const meta = document.createElement('span');
+        meta.className = 'metric-meta';
+        meta.textContent = ` (${t.current.source} · ${t.current.asOf})`;
+        label.appendChild(meta);
+      }
+      row.appendChild(label);
+
+      if (isUnavailable) {
+        // An UNAVAILABLE target must never look like "zero progress" (AC-13
+        // truthfulness, review MINOR #13): no bar at all, just the label.
+        const bar = document.createElement('div');
+        bar.className = 'progress-bar progress-bar-unavailable';
+        bar.textContent = 'UNAVAILABLE';
+        row.appendChild(bar);
+      } else {
+        const bar = document.createElement('div');
+        bar.className = 'progress-bar';
+        const fill = document.createElement('div');
+        fill.className = 'progress-fill';
+        const pct = (typeof t.progress === 'number') ? Math.round(t.progress * 100) : 0;
+        fill.style.width = `${pct}%`;
+        bar.appendChild(fill);
+        row.appendChild(bar);
+      }
+      container.appendChild(row);
+    }
+  }
+
+  function renderAlerts(data) {
+    const el = document.getElementById('alerts-list');
+    if (!el) return;
+    el.innerHTML = '';
+    const alerts = data.alerts || [];
+    if (alerts.length === 0) {
+      el.textContent = 'NO ALERTS';
+      return;
+    }
+    for (const a of alerts) {
+      const row = document.createElement('div');
+      row.setAttribute('data-alert', '');
+      row.className = a.severity === 'critical' ? 'alert-critical' : 'alert-warning';
+      row.textContent = `${a.message} (${a.source}, ${a.asOf})`;
+      el.appendChild(row);
+    }
+  }
+
+  function render(data) {
+    renderMetrics(data);
+    renderPills(data);
+    if (data.github) { setPanelMeta('github-meta', data.github); renderGithubRepos(data.github); }
+    if (data.vercel) { setPanelMeta('vercel-meta', data.vercel); renderVercelProjects(data.vercel); }
+    if (data.supabase) { setPanelMeta('supabase-meta', data.supabase); renderSupabaseProjects(data.supabase); }
+    if (data.gmail) { setPanelMeta('gmail-meta', data.gmail); renderRadar(data.gmail); }
+    if (data.advisor) renderAdvisor(data.advisor);
+    if (data.research) renderResearch(data.research);
+    if (data.orchestrator) renderOrchestrator(data.orchestrator);
+    renderObjective(data);
+    renderAlerts(data);
+  }
+
+  async function loadData() {
+    let data = MOCK_DATA;
+    let banner = 'MOCK DATA';
+    try {
+      const res = await fetch('data/mission-control.json');
+      if (res && res.ok) {
+        let json = null;
+        try {
+          json = await res.json();
+        } catch {
+          json = null;
+        }
+        if (json && json.schemaVersion === 1 && REQUIRED_SECTIONS.every((s) => json[s] !== undefined && json[s] !== null)) {
+          data = json;
+          banner = `LIVE · ${json.generatedAt}`;
+        } else {
+          banner = 'DATA INVALID — MOCK DATA';
+        }
+      } else {
+        banner = 'MOCK DATA';
+      }
+    } catch {
+      banner = 'MOCK DATA';
+    }
+    currentData = data;
+    setBanner(banner);
+    render(data);
+    return data;
+  }
+
+  function trimTrailingPeriod(s) {
+    return String(s).trim().replace(/\.$/, '');
+  }
+
+  function buildBrief(data) {
+    const parts = [];
+    const d = String(data.generatedAt).slice(0, 10);
+    parts.push(`Good morning. AXION morning brief for ${d}.`);
+
+    if (data.alerts && data.alerts.length > 0) {
+      const msgs = data.alerts.map((a) => trimTrailingPeriod(a.message));
+      parts.push(`Alerts: ${msgs.join('; ')}.`);
+    } else {
+      parts.push('No alerts.');
+    }
+
+    const urgentDefs = [
+      { ref: 'github.totals.failingCI', ok: (n) => `${n} failing CI`, label: 'Failing CI' },
+      { ref: 'vercel.totals.failed24h', ok: (n) => `${n} failed Vercel deploys in 24 hours`, label: 'Vercel failed deploys' },
+      { ref: 'gmail.totals.importantUnread', ok: (n) => `${n} important unread emails`, label: 'Important unread email' },
+      { ref: 'supabase.totals.securityAdvisors', ok: (n) => `${n} Supabase security advisors`, label: 'Supabase security advisors' },
+      { ref: 'supabase.totals.performanceAdvisors', ok: (n) => `${n} Supabase performance advisors`, label: 'Supabase performance advisors' }
+    ];
+    const urgentItems = [];
+    for (const def of urgentDefs) {
+      const metric = resolvePath(data, def.ref);
+      if (!metric) continue;
+      if (metric.status === 'OK') {
+        if (metric.value > 0) urgentItems.push(def.ok(metric.value));
+      } else {
+        urgentItems.push(`${def.label} unavailable`);
+      }
+    }
+    parts.push(urgentItems.length > 0 ? `Urgent: ${urgentItems.join('; ')}.` : 'No urgent items.');
+
+    if (data.advisor && data.advisor.status === 'OK') {
+      const recs = data.advisor.recommendations.map((r) => trimTrailingPeriod(r.action));
+      parts.push(`Top recommendations: 1. ${recs[0]}. 2. ${recs[1]}. 3. ${recs[2]}.`);
+    } else {
+      parts.push('Advisor unavailable.');
+    }
+
+    if (!data.advisor || data.advisor.status !== 'OK') {
+      parts.push('Follow-ups unavailable.');
+    } else if (!data.advisor.followUps || data.advisor.followUps.length === 0) {
+      parts.push('No pending follow-ups.');
+    } else {
+      const items = data.advisor.followUps.map((f) => `${trimTrailingPeriod(f.action)} (${f.ageDays} days)`);
+      parts.push(`Follow-ups: ${items.join('; ')}.`);
+    }
+
+    return parts.join(' ');
+  }
+
+  function logAndSpeak(text) {
+    const log = document.getElementById('cmd-log');
+    if (log) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      log.appendChild(div);
+      log.scrollTop = log.scrollHeight;
+    }
+    try {
+      if (window.speechSynthesis && typeof SpeechSynthesisUtterance !== 'undefined') {
+        const utter = new SpeechSynthesisUtterance(text);
+        window.speechSynthesis.speak(utter);
+      }
+    } catch {
+      // speech synthesis is best-effort only
+    }
+  }
+
+  function githubReply(data) {
+    const g = data.github && data.github.totals;
+    const v = (m) => (m && m.status === 'OK' ? m.value : 'unavailable');
+    return `GitHub: ${v(g && g.openPRs)} open pull requests, ${v(g && g.openIssues)} open issues, ${v(g && g.failingCI)} failing CI.`;
+  }
+  function vercelReply(data) {
+    const v = data.vercel && data.vercel.totals;
+    const val = (m) => (m && m.status === 'OK' ? m.value : 'unavailable');
+    return `Vercel: ${val(v && v.deploys24h)} deploys in 24 hours, ${val(v && v.failed24h)} failed.`;
+  }
+  function gmailReply(data) {
+    const g = data.gmail && data.gmail.totals;
+    const val = (m) => (m && m.status === 'OK' ? m.value : 'unavailable');
+    return `Gmail: ${val(g && g.unread)} unread, ${val(g && g.importantUnread)} important.`;
+  }
+  function supabaseReply(data) {
+    const s = data.supabase && data.supabase.totals;
+    const val = (m) => (m && m.status === 'OK' ? m.value : 'unavailable');
+    return `Supabase: ${val(s && s.projects)} projects, ${val(s && s.securityAdvisors)} security advisors.`;
+  }
+  function advisorReply(data) {
+    if (data.advisor && data.advisor.status === 'OK') {
+      const r = data.advisor.recommendations;
+      return `1. ${r[0].action} 2. ${r[1].action} 3. ${r[2].action}`;
+    }
+    return 'Advisor unavailable.';
+  }
+  function researchReply(data) {
+    if (data.research && data.research.status === 'OK') {
+      return `Latest research: ${data.research.topic}. ${data.research.sourceCount.value} sources.`;
+    }
+    return 'Research unavailable.';
+  }
+
+  function handleCommand(text) {
+    const data = getData();
+    const original = String(text == null ? '' : text);
+
+    const withoutWake = original.trim().replace(/^axion\b[:,]?\s*/i, '');
+    if (/^run\b/i.test(withoutWake)) {
+      const task = withoutWake.replace(/^run\b\s*/i, '').trim().replace(/"/g, '');
+      const response = `To run tasks, use the terminal: npm run axion -- "${task}"`;
+      logAndSpeak(response);
+      return response;
+    }
+
+    let cleaned = original.toLowerCase();
+    cleaned = cleaned.replace(/^axion\b[:,]?\s*/i, '');
+    cleaned = cleaned.replace(/[^a-z0-9\s]/g, ' ').trim();
+
+    let response;
+    if (cleaned.includes('morning brief') || cleaned.includes('brief')) {
+      response = buildBrief(data);
+    } else if (cleaned.includes('help')) {
+      response = 'Commands: status, brief, github, vercel, gmail, supabase, advisor, research, run <task>, refresh, help.';
+    } else if (cleaned.includes('status') || cleaned.includes('report')) {
+      response = [githubReply(data), vercelReply(data), gmailReply(data), supabaseReply(data)].join(' ');
+    } else if (cleaned.includes('github')) {
+      response = githubReply(data);
+    } else if (cleaned.includes('vercel')) {
+      response = vercelReply(data);
+    } else if (cleaned.includes('gmail') || cleaned.includes('email') || cleaned.includes('inbox')) {
+      response = gmailReply(data);
+    } else if (cleaned.includes('supabase')) {
+      response = supabaseReply(data);
+    } else if (cleaned.includes('advisor') || cleaned.includes('recommendations')) {
+      response = advisorReply(data);
+    } else if (cleaned.includes('research')) {
+      response = researchReply(data);
+    } else if (cleaned.includes('refresh')) {
+      response = 'Refreshing data.';
+      loadData();
+    } else {
+      response = `Command not recognized: "${original}". Say help for commands.`;
+    }
+
+    logAndSpeak(response);
+    return response;
+  }
+
+  // -- Boot sequence --------------------------------------------------
+  function runBoot() {
+    return new Promise((resolve) => {
+      const bootEl = document.getElementById('boot');
+      if (bootMs <= 0) {
+        if (bootEl) bootEl.hidden = true;
+        resolve();
+        return;
+      }
+      setTimeout(() => {
+        if (bootEl) bootEl.hidden = true;
+        resolve();
+      }, bootMs);
+    });
+  }
+
+  // -- Clock ------------------------------------------------------------
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function updateClock() {
+    const now = new Date();
+    const utcEl = document.getElementById('clock-utc');
+    const localEl = document.getElementById('clock-local');
+    if (utcEl) utcEl.textContent = `UTC ${pad(now.getUTCHours())}:${pad(now.getUTCMinutes())}:${pad(now.getUTCSeconds())}`;
+    if (localEl) localEl.textContent = `LOCAL ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  // -- Sphere (orb) -------------------------------------------------------
+  function setupOrb() {
+    const canvas = document.getElementById('orb');
+    if (!canvas || typeof canvas.getContext !== 'function') return;
+    let ctx = null;
+    try { ctx = canvas.getContext('2d'); } catch { ctx = null; }
+    if (!ctx) return;
+
+    const N = 260;
+    const points = [];
+    const golden = Math.PI * (3 - Math.sqrt(5));
+    for (let i = 0; i < N; i += 1) {
+      const y = 1 - (i / (N - 1)) * 2;
+      const radius = Math.sqrt(Math.max(0, 1 - y * y));
+      const theta = golden * i;
+      points.push({ x: Math.cos(theta) * radius, y, z: Math.sin(theta) * radius });
+    }
+
+    let angle = 0;
+    function draw() {
+      const w = canvas.width || 420;
+      const h = canvas.height || 420;
+      ctx.clearRect(0, 0, w, h);
+      const cx = w / 2;
+      const cy = h / 2;
+      const r = Math.min(w, h) / 2 - 12;
+      ctx.fillStyle = '#33e6ff';
+      for (const p of points) {
+        const x = p.x * Math.cos(angle) - p.z * Math.sin(angle);
+        const z = p.x * Math.sin(angle) + p.z * Math.cos(angle);
+        const scale = (z + 2) / 3;
+        ctx.beginPath();
+        ctx.arc(cx + x * r, cy + p.y * r, Math.max(0.6, 1.6 * scale), 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function loop() {
+      angle += 0.008;
+      draw();
+      if (!reducedMotion && typeof requestAnimationFrame === 'function') {
+        requestAnimationFrame(loop);
+      }
+    }
+
+    draw();
+    if (!reducedMotion && typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(loop);
+    }
+  }
+
+  // -- Waveform (decorative, no numbers, no getUserMedia) ------------------
+  function setupWaveform() {
+    const canvas = document.getElementById('waveform');
+    if (!canvas || typeof canvas.getContext !== 'function') return;
+    let ctx = null;
+    try { ctx = canvas.getContext('2d'); } catch { ctx = null; }
+    if (!ctx) return;
+
+    let t = 0;
+    function draw() {
+      const w = canvas.width || 280;
+      const h = canvas.height || 60;
+      ctx.clearRect(0, 0, w, h);
+      ctx.strokeStyle = '#33e6ff';
+      ctx.beginPath();
+      for (let x = 0; x < w; x += 2) {
+        const y = h / 2 + Math.sin((x + t) * 0.15) * (h / 3) * Math.sin(t * 0.02 + x * 0.01);
+        if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+    function loop() {
+      t += 1;
+      draw();
+      if (!reducedMotion && typeof requestAnimationFrame === 'function') {
+        requestAnimationFrame(loop);
+      }
+    }
+    draw();
+    if (!reducedMotion && typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(loop);
+    }
+  }
+
+  // -- Voice: continuous (wake word) + push-to-talk (AC-18, AC-24, AC-51) --
+  const SRClass = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const sttAvailable = Boolean(SRClass);
+  let pttRecognizer = null;
+  let pttListening = false;
+  let voiceUnavailableLogged = false;
+
+  function getPttRecognizer() {
+    if (!sttAvailable) return null;
+    if (!pttRecognizer) {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      pttRecognizer = new SR();
+      pttRecognizer.continuous = false;
+      pttRecognizer.onresult = (event) => {
+        try {
+          const transcript = event.results[0][0].transcript.trim();
+          const text = transcript.replace(/^axion\b[:,]?\s*/i, '');
+          handleCommand(text);
+        } catch {
+          // ignore malformed recognition events
+        }
+      };
+    }
+    return pttRecognizer;
+  }
+
+  function pttStart() {
+    const rec = getPttRecognizer();
+    if (!rec) {
+      if (!voiceUnavailableLogged) {
+        logAndSpeak('VOICE UNAVAILABLE — USE TEXT');
+        voiceUnavailableLogged = true;
+      }
+      return;
+    }
+    if (pttListening) return;
+    pttListening = true;
+    try { rec.start(); } catch { /* ignore */ }
+  }
+  function pttStop() {
+    if (!sttAvailable) return;
+    if (!pttListening) return;
+    pttListening = false;
+    const rec = getPttRecognizer();
+    try { rec.stop(); } catch { /* ignore */ }
+  }
+
+  function isTypingTarget(el) {
+    if (!el || !el.tagName) return false;
+    const tag = el.tagName.toLowerCase();
+    return tag === 'input' || tag === 'textarea' || el.isContentEditable === true;
+  }
+
+  const orbEl = document.getElementById('orb');
+  if (orbEl) {
+    orbEl.addEventListener('click', () => {
+      if (pttListening) pttStop(); else pttStart();
+    });
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.code === 'Space' && !e.repeat) {
+      if (isTypingTarget(document.activeElement)) return;
+      e.preventDefault();
+      pttStart();
+    }
+  });
+  document.addEventListener('keyup', (e) => {
+    if (e.code === 'Space') {
+      if (isTypingTarget(document.activeElement)) return;
+      pttStop();
+    }
+  });
+
+  const voiceBtn = document.getElementById('voice-btn');
+  let continuousRec = null;
+  let continuousOn = false;
+  if (voiceBtn) {
+    if (!sttAvailable) {
+      voiceBtn.disabled = true;
+      voiceBtn.textContent = 'VOICE UNAVAILABLE — USE TEXT';
+    } else {
+      voiceBtn.addEventListener('click', () => {
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!continuousRec) {
+          continuousRec = new SR();
+          continuousRec.continuous = true;
+          continuousRec.onresult = (event) => {
+            try {
+              const results = event.results;
+              const last = results[results.length - 1];
+              const transcript = last[0].transcript.trim();
+              const lower = transcript.toLowerCase();
+              const idx = lower.indexOf('axion');
+              if (idx === -1) return;
+              const after = transcript.slice(idx + 'axion'.length).replace(/^[:,]?\s*/, '');
+              handleCommand(after);
+            } catch {
+              // ignore malformed recognition events
+            }
+          };
+        }
+        if (!continuousOn) {
+          continuousOn = true;
+          try { continuousRec.start(); } catch { /* ignore */ }
+          voiceBtn.textContent = 'VOICE ENGAGED';
+        } else {
+          continuousOn = false;
+          try { continuousRec.stop(); } catch { /* ignore */ }
+          voiceBtn.textContent = 'ENGAGE VOICE';
+        }
+      });
+    }
+  }
+
+  const cmdInput = document.getElementById('cmd-input');
+  if (cmdInput) {
+    cmdInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const val = cmdInput.value;
+        cmdInput.value = '';
+        handleCommand(val);
+      }
+    });
+  }
+
+  const briefBtn = document.getElementById('brief-btn');
+  if (briefBtn) {
+    briefBtn.addEventListener('click', () => handleCommand('brief'));
+  }
+
+  setupOrb();
+  setupWaveform();
+
+  const readyPromise = (async () => {
+    await runBoot();
+    await loadData();
+  })();
+
+  window.AXION = {
+    MOCK_DATA,
+    ready: readyPromise,
+    handleCommand,
+    loadData,
+    getData,
+    bootMs,
+    BOOT_MS_DEFAULT,
+    buildBrief,
+  };
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+{
+  "name": "@wicktech/axion-core",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "AXION Mission Control: local read-only dashboard and approval-gated orchestrator",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "serve": "node scripts/serve.mjs",
+    "collect": "node scripts/collect.mjs",
+    "build:data": "node scripts/build-data.mjs",
+    "scout:local": "npm run collect && npm run build:data",
+    "validate": "node scripts/validate.mjs",
+    "axion": "node scripts/axion.mjs",
+    "slug": "node scripts/slug.mjs",
+    "followups": "node scripts/followups.mjs",
+    "test": "node --test --test-timeout=30000 \"test/*.test.mjs\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "jsdom": "29.1.1"
+  }
+}

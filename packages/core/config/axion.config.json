@@ -1,0 +1,32 @@
+{
+  "github": { "owner": "WickTech", "maxRepos": 15, "activeWithinDays": 30 },
+  "thresholds": { "metricChangePct": 20, "failingCI": 0, "vercelErrors": 0 },
+  "objective": { "title": "KEEP THE FLEET GREEN", "targets": [
+    { "id": "ci", "label": "FAILING CI", "metricRef": "github.totals.failingCI", "comparator": "atMost", "target": 0 },
+    { "id": "deploys", "label": "FAILED DEPLOYS 24H", "metricRef": "vercel.totals.failed24h", "comparator": "atMost", "target": 0 },
+    { "id": "inbox", "label": "IMPORTANT UNREAD", "metricRef": "gmail.totals.importantUnread", "comparator": "atMost", "target": 5 },
+    { "id": "db", "label": "SUPABASE SECURITY ADVISORS", "metricRef": "supabase.totals.securityAdvisors", "comparator": "atMost", "target": 0 } ] },
+  "agents": {
+    "scout":      { "allowedTools": ["Read(./**)", "Grep", "Glob", "Write(data/**)", "Edit(data/**)", "Bash(npm run collect)", "Bash(npm run build:data)",
+                    "mcp__claude_ai_Vercel__list_projects", "mcp__claude_ai_Vercel__list_deployments",
+                    "mcp__claude_ai_Supabase__list_projects", "mcp__claude_ai_Supabase__get_advisors",
+                    "mcp__claude_ai_Gmail__search_threads"],
+                    "disallowedTools": ["Read(~/.ssh/**)", "Read(~/.aws/**)", "Read(~/.config/gh/**)", "Read(~/.claude/**)", "Read(~/.gnupg/**)", "Bash(git push:*)", "Bash(curl:*)", "Bash(rm:*)", "Bash(sudo:*)"] },
+    "operator":   { "allowedTools": ["Read(./**)", "Grep", "Glob", "Write(data/**)", "Edit(data/**)"],
+                    "disallowedTools": ["Read(~/.ssh/**)", "Read(~/.aws/**)", "Read(~/.config/gh/**)", "Read(~/.claude/**)", "Read(~/.gnupg/**)", "Bash"] },
+    "developer":  { "allowedTools": ["Read(./**)", "Grep", "Glob", "Write(data/**)", "Edit(data/**)"],
+                    "disallowedTools": ["Read(~/.ssh/**)", "Read(~/.aws/**)", "Read(~/.config/gh/**)", "Read(~/.claude/**)", "Read(~/.gnupg/**)", "Bash"] },
+    "content":    { "allowedTools": ["Read(./**)", "Grep", "Glob", "Write(data/**)", "Edit(data/**)"],
+                    "disallowedTools": ["Read(~/.ssh/**)", "Read(~/.aws/**)", "Read(~/.config/gh/**)", "Read(~/.claude/**)", "Read(~/.gnupg/**)", "Bash"] },
+    "advisor":    { "allowedTools": ["Read(./**)", "Grep", "Glob", "Write(data/**)", "Edit(data/**)", "Bash(npm run followups)", "Bash(npm run build:data)"],
+                    "disallowedTools": ["Read(~/.ssh/**)", "Read(~/.aws/**)", "Read(~/.config/gh/**)", "Read(~/.claude/**)", "Read(~/.gnupg/**)", "Bash(git push:*)", "Bash(curl:*)", "Bash(rm:*)", "Bash(sudo:*)"] },
+    "search":     { "allowedTools": ["Read(./**)", "Write(data/**)", "Edit(data/**)", "WebSearch", "WebFetch"],
+                    "disallowedTools": ["Read(~/.ssh/**)", "Read(~/.aws/**)", "Read(~/.config/gh/**)", "Read(~/.claude/**)", "Read(~/.gnupg/**)", "Bash"] },
+    "researcher": { "allowedTools": ["Read(./**)", "Write(data/**)", "Edit(data/**)", "WebSearch", "WebFetch", "Bash(node scripts/slug.mjs:*)", "Bash(npm run build:data)"],
+                    "disallowedTools": ["Read(~/.ssh/**)", "Read(~/.aws/**)", "Read(~/.config/gh/**)", "Read(~/.claude/**)", "Read(~/.gnupg/**)", "Bash(git push:*)", "Bash(curl:*)", "Bash(rm:*)", "Bash(sudo:*)"] }
+  },
+  "executors": {
+    "claude": { "allowedTools": ["Read(./**)", "Grep", "Glob"], "disallowedTools": ["Read(~/.ssh/**)", "Read(~/.aws/**)", "Read(~/.config/gh/**)", "Read(~/.claude/**)", "Read(~/.gnupg/**)", "Bash"] },
+    "planner": { "allowedTools": [], "disallowedTools": ["Read(~/.ssh/**)", "Read(~/.aws/**)", "Read(~/.config/gh/**)", "Read(~/.claude/**)", "Read(~/.gnupg/**)", "Bash"] }
+  }
+}

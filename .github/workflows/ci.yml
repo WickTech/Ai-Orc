@@ -30,5 +30,8 @@ jobs:
       - name: Test
         run: npm test
 
+      - name: Validate mission-control data
+        run: npm run validate
+
       - name: Build
         run: npm run build
