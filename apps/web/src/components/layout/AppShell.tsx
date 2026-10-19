@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useEffect, useState } from "react"
 import { LayoutDashboard, TerminalSquare, BookOpen, Package, Settings, Cpu, GitBranch, Radar, ListChecks } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useStore } from "@/store"
@@ -22,6 +23,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const { terminals } = useStore()
   const { notifications } = useStore()
+  const [needsSignIn, setNeedsSignIn] = useState(false)
+
+  // With AI_ORC_TOKEN set, the API refuses signed-out browsers: say so instead of showing empty pages.
+  useEffect(() => {
+    if (pathname === "/login") return
+    fetch("/api/config")
+      .then(async (res) => {
+        const body = res.ok ? null : await res.json().catch(() => null)
+        setNeedsSignIn(!res.ok && /sign in/i.test(body?.error ?? ""))
+      })
+      .catch(() => {})
+  }, [pathname])
   const runningCount = terminals.filter((t) => t.status === "running").length
   const unread = notifications.filter((n) => !n.read).length
 
@@ -72,6 +85,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <SessionWatcher />
       <main className="flex-1 overflow-hidden flex flex-col">
+        {needsSignIn && (
+          <div role="status" className="px-4 py-2 text-sm bg-amber-500/10 text-amber-300 border-b border-amber-500/30">
+            This server requires sign-in. <Link href="/login" className="underline">Sign in</Link> to use the app.
+          </div>
+        )}
         {children}
       </main>
     </div>
