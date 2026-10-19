@@ -15,12 +15,16 @@ export default function SettingsPage() {
   const [config, setConfig] = useState<Config>({ vaultPath: "", port: 3000, repos: [], verify: {} })
   // Verify command per repository row, as typed (split on spaces when saved).
   const [verifyText, setVerifyText] = useState<string[]>([])
+  // What the server last returned: only settings you changed are sent, so an old
+  // value in an untouched field (e.g. a vault folder that no longer exists) cannot block saving others.
+  const [loaded, setLoaded] = useState<Config | null>(null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState("")
 
   function applyConfig(next: Config) {
     setConfig(next)
+    setLoaded(next)
     setVerifyText(next.repos.map((r) => (next.verify?.[r] ?? []).join(" ")))
   }
 
@@ -39,7 +43,8 @@ export default function SettingsPage() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...config,
+          ...(loaded && config.vaultPath === loaded.vaultPath ? {} : { vaultPath: config.vaultPath }),
+          ...(loaded && config.port === loaded.port ? {} : { port: config.port }),
           repos: config.repos.map((r) => r.trim()).filter(Boolean),
           verify: Object.fromEntries(
             config.repos
