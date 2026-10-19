@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-20T06:00:00Z",
+  "dataMode": "live",
+  "alerts": [
+    { "metric": "gmail.totals.unread", "message": "gmail.totals.unread changed +33% vs 7-day average 15.0 (5 snapshots)", "severity": "warning", "source": "axion:build-data (data/history)", "asOf": "2026-09-20T06:00:00Z" },
+    { "metric": "vercel.totals.deploys24h", "message": "vercel.totals.deploys24h changed +43% vs 7-day average 7.0 (4 snapshots)", "severity": "warning", "source": "axion:build-data (data/history)", "asOf": "2026-09-20T06:00:00Z" }
+  ],
+  "objective": {
+    "title": "KEEP THE FLEET GREEN",
+    "targets": [
+      { "id": "ci", "label": "FAILING CI", "metricRef": "github.totals.failingCI", "comparator": "atMost", "target": 0,
+        "current": { "value": 0, "status": "OK", "source": "gh:example-org", "asOf": "2026-09-20T06:00:00Z", "reason": null }, "progress": 1 },
+      { "id": "deploys", "label": "FAILED DEPLOYS 24H", "metricRef": "vercel.totals.failed24h", "comparator": "atMost", "target": 0,
+        "current": { "value": 0, "status": "OK", "source": "vercel:example-org", "asOf": "2026-09-20T06:00:00Z", "reason": null }, "progress": 1 },
+      { "id": "inbox", "label": "IMPORTANT UNREAD", "metricRef": "gmail.totals.importantUnread", "comparator": "atMost", "target": 5,
+        "current": { "value": 4, "status": "OK", "source": "gmail:demo-user", "asOf": "2026-09-20T06:00:00Z", "reason": null }, "progress": 1 },
+      { "id": "db", "label": "SUPABASE SECURITY ADVISORS", "metricRef": "supabase.totals.securityAdvisors", "comparator": "atMost", "target": 0,
+        "current": { "value": null, "status": "UNAVAILABLE", "source": "axion:build-data", "asOf": "2026-09-20T06:00:00Z", "reason": "supabase connector not configured" }, "progress": null }
+    ]
+  },
+  "github": {
+    "status": "OK", "source": "gh:example-org", "asOf": "2026-09-20T06:00:00Z", "reason": null,
+    "totals": {
+      "reposTracked": { "value": 8, "status": "OK", "source": "gh:example-org", "asOf": "2026-09-20T06:00:00Z", "reason": null },
+      "commits7d": { "value": null, "status": "UNAVAILABLE", "source": "gh:example-org", "asOf": "2026-09-20T06:00:00Z", "reason": "partial data: demo-repo failed" },
+      "openPRs": { "value": 5, "status": "OK", "source": "gh:example-org", "asOf": "2026-09-20T06:00:00Z", "reason": null },
+      "openIssues": { "value": 9, "status": "OK", "source": "gh:example-org", "asOf": "2026-09-20T06:00:00Z", "reason": null },
+      "failingCI": { "value": 0, "status": "OK", "source": "gh:example-org", "asOf": "2026-09-20T06:00:00Z", "reason": null }
+    },
+    "repos": [
+      { "name": "demo-repo", "url": "https://github.com/example-org/demo-repo", "lastPushAt": "2026-09-19T10:00:00Z", "commits7d": null, "openPRs": 2, "openIssues": 3, "ci": "success" },
+      { "name": "other-repo", "url": "https://github.com/example-org/other-repo", "lastPushAt": "2026-09-18T08:00:00Z", "commits7d": 11, "openPRs": 3, "openIssues": 6, "ci": "none" }
+    ]
+  },
+  "vercel": {
+    "status": "OK", "source": "vercel:example-org", "asOf": "2026-09-20T06:00:00Z", "reason": null,
+    "totals": {
+      "projects": { "value": 6, "status": "OK", "source": "vercel:example-org", "asOf": "2026-09-20T06:00:00Z", "reason": null },
+      "deploys24h": { "value": 10, "status": "OK", "source": "vercel:example-org", "asOf": "2026-09-20T06:00:00Z", "reason": null },
+      "failed24h": { "value": 0, "status": "OK", "source": "vercel:example-org", "asOf": "2026-09-20T06:00:00Z", "reason": null }
+    },
+    "projects": [
+      { "name": "sample-service", "state": "READY", "url": "https://sample-service.vercel.app", "deployedAt": "2026-09-20T05:00:00Z", "error": null }
+    ]
+  },
+  "gmail": {
+    "status": "OK", "source": "gmail:demo-user", "asOf": "2026-09-20T06:00:00Z", "reason": null,
+    "totals": {
+      "unread": { "value": 20, "status": "OK", "source": "gmail:demo-user", "asOf": "2026-09-20T06:00:00Z", "reason": null },
+      "importantUnread": { "value": 4, "status": "OK", "source": "gmail:demo-user", "asOf": "2026-09-20T06:00:00Z", "reason": null }
+    },
+    "topThreads": [
+      { "from": "deploy-bot@example.com", "subject": "Deployment failed: sample-service", "receivedAt": "2026-09-20T05:30:00Z", "important": true },
+      { "from": "billing@example.com", "subject": "Invoice available", "receivedAt": "2026-09-19T14:00:00Z", "important": false }
+    ]
+  },
+  "supabase": {
+    "status": "UNAVAILABLE", "source": "axion:build-data", "asOf": "2026-09-20T06:00:00Z", "reason": "supabase connector not configured",
+    "totals": {
+      "projects": { "value": null, "status": "UNAVAILABLE", "source": "axion:build-data", "asOf": "2026-09-20T06:00:00Z", "reason": "supabase connector not configured" },
+      "securityAdvisors": { "value": null, "status": "UNAVAILABLE", "source": "axion:build-data", "asOf": "2026-09-20T06:00:00Z", "reason": "supabase connector not configured" },
+      "performanceAdvisors": { "value": null, "status": "UNAVAILABLE", "source": "axion:build-data", "asOf": "2026-09-20T06:00:00Z", "reason": "supabase connector not configured" }
+    },
+    "projects": []
+  },
+  "advisor": {
+    "status": "OK", "source": "axion:advisor", "asOf": "2026-09-20T06:00:00Z", "reason": null,
+    "recommendations": [
+      { "rank": 1, "category": "blocker", "action": "Investigate the demo-repo commit count failure before trusting velocity numbers.", "evidence": "9 open issues, 5 open pull requests still need triage (gh:example-org, 2026-09-20T06:00:00Z)", "risk": "Velocity metrics stay unreliable all week" },
+      { "rank": 2, "category": "outperforming", "action": "Keep shipping sample-service deploys at the current pace.", "evidence": "10 deploys in 24h, 0 failed (vercel:example-org, 2026-09-20T06:00:00Z)", "risk": "Momentum lost if delayed" },
+      { "rank": 3, "category": "degrading", "action": "Reply to the deployment failure thread.", "evidence": "1 important unread thread about a failed deploy (gmail:demo-user, 2026-09-20T06:00:00Z)", "risk": "Deployment issue goes unnoticed" }
+    ],
+    "followUps": [
+      { "date": "2026-09-14", "action": "Review pending Supabase security advisories", "ageDays": 6 },
+      { "date": "2026-09-16", "action": "Confirm Vercel billing plan covers current usage", "ageDays": 4 }
+    ]
+  },
+  "research": {
+    "status": "OK", "source": "axion:researcher", "asOf": "2026-09-19T09:00:00Z", "reason": null,
+    "topic": "Postgres row level security patterns",
+    "slug": "postgres-row-level-security-patterns",
+    "generatedAt": "2026-09-19T09:00:00Z",
+    "summary": "Row level security policies should be paired with explicit default-deny rules and tested per-role; four independent sources agree on this pattern.",
+    "sourceCount": { "value": 4, "status": "OK", "source": "axion:researcher", "asOf": "2026-09-19T09:00:00Z", "reason": null }
+  },
+  "orchestrator": {
+    "status": "OK", "source": "orchestrator:data/orchestrator-log.md", "asOf": "2026-09-20T06:00:00Z", "reason": null,
+    "lastRun": { "task": "scout then draft replies", "startedAt": "2026-09-20T05:55:00Z", "outcome": "COMPLETED" },
+    "totals": {
+      "steps": { "value": 2, "status": "OK", "source": "orchestrator:data/orchestrator-log.md", "asOf": "2026-09-20T06:00:00Z", "reason": null },
+      "auto": { "value": 1, "status": "OK", "source": "orchestrator:data/orchestrator-log.md", "asOf": "2026-09-20T06:00:00Z", "reason": null },
+      "approved": { "value": 1, "status": "OK", "source": "orchestrator:data/orchestrator-log.md", "asOf": "2026-09-20T06:00:00Z", "reason": null },
+      "denied": { "value": 0, "status": "OK", "source": "orchestrator:data/orchestrator-log.md", "asOf": "2026-09-20T06:00:00Z", "reason": null },
+      "skipped": { "value": 0, "status": "OK", "source": "orchestrator:data/orchestrator-log.md", "asOf": "2026-09-20T06:00:00Z", "reason": null },
+      "failed": { "value": 0, "status": "OK", "source": "orchestrator:data/orchestrator-log.md", "asOf": "2026-09-20T06:00:00Z", "reason": null }
+    }
+  }
+}
