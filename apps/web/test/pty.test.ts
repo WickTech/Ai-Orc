@@ -48,6 +48,14 @@ async function load() {
 const msg = (m: object) => JSON.stringify(m)
 
 describe("handleWsMessage", () => {
+  it("spawns the opencode adapter by its bare command", async () => {
+    const pty = await load()
+    const ws = fakeWs()
+    await pty.handleWsMessage(ws as never, msg({ type: "terminal:spawn", id: "t9", toolId: "opencode" }))
+    expect(spawnMock.mock.calls[0][0]).toBe("opencode")
+    expect(spawnMock.mock.calls[0][1]).toEqual([])
+  })
+
   it("spawns a registered tool using the server-side command and args", async () => {
     const pty = await load()
     const ws = fakeWs()

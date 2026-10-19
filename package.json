@@ -16,8 +16,8 @@
     "build": "npm run build -w @wicktech/axion-web",
     "start": "npm run start -w @wicktech/axion-web",
     "lint": "npm run lint -w @wicktech/axion-web",
-    "typecheck": "npm run typecheck -w @wicktech/axion-web",
-    "test": "npm run test -w @wicktech/axion-web && npm run test -w @wicktech/axion-core",
+    "typecheck": "npm run typecheck -w @wicktech/axion-agents && npm run typecheck -w @wicktech/axion-web",
+    "test": "npm run test -w @wicktech/axion-agents && npm run test -w @wicktech/axion-web && npm run test -w @wicktech/axion-core",
     "validate": "npm run build:data -w @wicktech/axion-core && npm run validate -w @wicktech/axion-core"
   }
 }

@@ -14,9 +14,44 @@ describe("db", () => {
   it("creates ~/.ai-orc/db.json with the built-in tools on first use", async () => {
     const { mod, home } = await withTempHome(load)
     const tools = await mod.getTools()
-    expect(tools.map((t) => t.id)).toEqual(["claude", "gemini", "codex"])
+    expect(tools.map((t) => t.id)).toEqual(["claude", "gemini", "codex", "opencode"])
     expect(tools.every((t) => t.builtin)).toBe(true)
     expect(existsSync(path.join(home, ".ai-orc", "db.json"))).toBe(true)
+  })
+
+  it("adds new built-in adapters to an existing db.json written by an older version", async () => {
+    const { mod, home } = await withTempHome(load)
+    await mod.getTools() // creates the file
+    const legacy = {
+      config: { vaultPath: "/v", port: 3000 },
+      tools: [
+        { id: "claude", label: "Claude Code", command: "claude", builtin: true },
+        { id: "gemini", label: "Gemini CLI", command: "gemini", builtin: true },
+        { id: "codex", label: "Codex CLI", command: "codex", builtin: true },
+        { id: "mine", label: "Mine", command: "mine" },
+      ],
+    }
+    writeFileSync(path.join(home, ".ai-orc", "db.json"), JSON.stringify(legacy))
+    expect((await mod.getTools()).map((t) => t.id)).toEqual(["claude", "gemini", "codex", "opencode", "mine"])
+  })
+
+  it("ignores saved entries that try to redefine a built-in id", async () => {
+    const { mod, home } = await withTempHome(load)
+    await mod.getTools()
+    writeFileSync(
+      path.join(home, ".ai-orc", "db.json"),
+      JSON.stringify({ tools: [{ id: "claude", label: "Evil", command: "sh", args: ["-c", "x"] }] }),
+    )
+    const claudes = (await mod.getTools()).filter((t) => t.id === "claude")
+    expect(claudes).toHaveLength(1)
+    expect(claudes[0]).toMatchObject({ command: "claude", builtin: true })
+  })
+
+  it("persists only custom tools, never the built-ins", async () => {
+    const { mod, home } = await withTempHome(load)
+    await mod.addTool({ id: "x", label: "X", command: "x" })
+    const onDisk = JSON.parse(readFileSync(path.join(home, ".ai-orc", "db.json"), "utf-8"))
+    expect(onDisk.tools).toEqual([{ id: "x", label: "X", command: "x" }])
   })
 
   it("defaults to no vault and port 3000", async () => {
@@ -55,14 +90,15 @@ describe("db", () => {
     await mod.getTools() // creates the file
     writeFileSync(path.join(home, ".ai-orc", "db.json"), JSON.stringify({ config: { vaultPath: "/v" } }))
     expect(await mod.getConfig()).toEqual({ vaultPath: "/v", port: 3000 })
-    expect((await mod.getTools()).length).toBe(3)
+    expect((await mod.getTools()).length).toBe(4)
   })
 
   it("refuses to replace a built-in tool", async () => {
     const { mod } = await withTempHome(load)
     await expect(mod.addTool({ id: "claude", label: "Evil", command: "evil" })).rejects.toThrow(/built-in/i)
-    const claude = (await mod.getTools()).find((t) => t.id === "claude")
-    expect(claude).toMatchObject({ command: "claude", builtin: true })
+    const claudes = (await mod.getTools()).filter((t) => t.id === "claude")
+    expect(claudes).toHaveLength(1)
+    expect(claudes[0]).toMatchObject({ command: "claude", builtin: true })
   })
 
   it("setConfig keeps only known keys", async () => {

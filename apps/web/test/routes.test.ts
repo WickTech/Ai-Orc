@@ -37,7 +37,7 @@ describe("/api/config", () => {
     const { config } = await setup()
     const body = await (await config.GET()).json()
     expect(body.config).toEqual({ vaultPath: "", port: 3000 })
-    expect(body.tools.map((t: { id: string }) => t.id)).toEqual(["claude", "gemini", "codex"])
+    expect(body.tools.map((t: { id: string }) => t.id)).toEqual(["claude", "gemini", "codex", "opencode"])
   })
 
   it("updates the vault path to an existing directory", async () => {
