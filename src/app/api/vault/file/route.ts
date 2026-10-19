@@ -18,8 +18,17 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "File not found" }, { status: 404 })
   }
 
-  const content = await readVaultFile(real)
-  return NextResponse.json({ content })
+  // resolveInVault also accepts not-yet-existing paths (for writes), so a
+  // missing file surfaces here rather than there.
+  try {
+    const content = await readVaultFile(real)
+    return NextResponse.json({ content })
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+      return NextResponse.json({ error: "File not found" }, { status: 404 })
+    }
+    throw err
+  }
 }
 
 export async function PUT(req: Request) {
