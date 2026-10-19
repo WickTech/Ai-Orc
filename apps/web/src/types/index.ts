@@ -11,6 +11,8 @@ export interface Tool {
 export interface AppConfig {
   vaultPath: string
   port: number
+  /** Absolute paths of git repository roots that sessions may run isolated worktrees in. */
+  repos: string[]
 }
 
 export interface Db {
@@ -25,6 +27,7 @@ export type WsMessageType =
   | "terminal:kill"
   | "terminal:output"
   | "terminal:exit"
+  | "terminal:worktree"
   | "vault:change"
 
 export interface WsMessage {
@@ -32,6 +35,10 @@ export interface WsMessage {
   id?: string
   data?: string
   toolId?: string
+  /** Id of a configured repo: run the session in an isolated worktree of it. */
+  repoId?: string
+  /** Set on terminal:worktree: the session branch. */
+  branch?: string
   command?: string
   args?: string[]
   cols?: number
@@ -68,4 +75,9 @@ export interface TerminalState {
   toolId: string
   label: string
   status: TerminalStatus
+  /** Repo whose isolated worktree this session runs in (resent on restart). */
+  repoId?: string
+  /** Present once the server created the worktree. */
+  branch?: string
+  worktreePath?: string
 }

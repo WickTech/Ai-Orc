@@ -3,7 +3,15 @@ import { mkdirSync, symlinkSync, writeFileSync } from "fs"
 import os from "os"
 import path from "path"
 import { ConfigValidationError, validateConfigUpdate } from "@/lib/configValidation"
+import { execFileSync } from "child_process"
+import { realpathSync } from "fs"
 import { cleanupTempDirs, tempDir } from "./helpers"
+
+function gitRepo(): string {
+  const dir = realpathSync(tempDir("repo-"))
+  execFileSync("git", ["init", "-q"], { cwd: dir })
+  return dir
+}
 
 afterEach(cleanupTempDirs)
 
@@ -74,5 +82,29 @@ describe("validateConfigUpdate", () => {
     const dir = tempDir("vault-")
     mkdirSync(path.join(dir, "notes"))
     await expect(validateConfigUpdate({ vaultPath: path.join(dir, "notes") })).resolves.toBeTruthy()
+  })
+
+  describe("repos", () => {
+    it("accepts git repository roots and returns their real paths", async () => {
+      const a = gitRepo()
+      const b = gitRepo()
+      expect((await validateConfigUpdate({ repos: [a, b] })).repos).toEqual([a, b])
+    })
+
+    it("de-duplicates repeated entries and accepts an empty list", async () => {
+      const a = gitRepo()
+      expect((await validateConfigUpdate({ repos: [a, a] })).repos).toEqual([a])
+      expect((await validateConfigUpdate({ repos: [] })).repos).toEqual([])
+    })
+
+    it("rejects non-arrays, non-strings, non-repos, broad paths and too many entries", async () => {
+      await bad({ repos: "/tmp" })
+      await bad({ repos: [1] })
+      await bad({ repos: [tempDir("plain-")] })
+      await bad({ repos: [os.homedir()] })
+      await bad({ repos: ["/"] })
+      await bad({ repos: ["relative/repo"] })
+      await bad({ repos: Array.from({ length: 21 }, () => gitRepo()) })
+    })
   })
 })

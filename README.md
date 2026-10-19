@@ -21,6 +21,18 @@
 
 ---
 
+## Isolated worktree sessions
+
+Add git repositories under **Settings → Repositories**, then pick one in the **Isolated worktree** dropdown when launching a tool. The session runs in its own `git worktree` on a new `axion/<tool>-<session>` branch under `~/.ai-orc/worktrees/`, so two agents can edit the same repo without touching each other or your checkout.
+
+- Refuses to start when the repository has uncommitted changes to tracked files (they would not appear in the worktree). Untracked files are ignored.
+- The browser never sends a path: the WebSocket message carries a repo id, and the server only honours ids of repos in your saved config. Each repo must be an existing git repository root and not `/` or your home folder.
+- Worktrees and branches are kept after a session ends. The **Worktrees** page shows branch, uncommitted changes and commit count, and removes one (deleting its branch). Removing one with uncommitted or unmerged work needs an explicit confirmation.
+- Restarting a terminal reuses its worktree.
+- All git calls use argument arrays without a shell.
+
+---
+
 ## Adding an agent adapter
 
 Built-in tools are agent adapters in `packages/agents`. To support a new CLI, add `packages/agents/src/adapters/<name>.ts` exporting an `AgentAdapter` (id, label, bare `command`, `args`, `installHint`, `capabilities`, optional `headlessArgs`) and list it in `packages/agents/src/registry.ts`. Commands must be bare executable names (no paths or spaces); the registry rejects anything else. Existing installs pick up new built-ins automatically because built-ins are not stored in `~/.ai-orc/db.json`.

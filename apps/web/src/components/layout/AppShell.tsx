@@ -2,13 +2,14 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, TerminalSquare, BookOpen, Package, Settings, Cpu } from "lucide-react"
+import { LayoutDashboard, TerminalSquare, BookOpen, Package, Settings, Cpu, GitBranch } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useStore } from "@/store"
 
 const NAV = [
   { href: "/", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/terminals", icon: TerminalSquare, label: "Terminals" },
+  { href: "/worktrees", icon: GitBranch, label: "Worktrees" },
   { href: "/vault", icon: BookOpen, label: "Vault" },
   { href: "/registry", icon: Package, label: "Registry" },
   { href: "/settings", icon: Settings, label: "Settings" },
