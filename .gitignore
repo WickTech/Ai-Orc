@@ -40,8 +40,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# ai-orc local data (never commit)
-~/.ai-orc/
+# axion local data (never commit)
+~/.axion/
 
 # Claude Code / AI agent workspace files (local dev only)
 AGENTS.md

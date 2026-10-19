@@ -1,5 +1,5 @@
 import { promises as fs } from "fs"
-import os from "os"
+import { dataDir } from "@/lib/paths"
 import path from "path"
 
 export type AuditAction = "merged" | "merge-refused" | "rejected" | "removed" | "verified" | "verify-failed"
@@ -18,7 +18,7 @@ const MAX_FIELD = 1000
 
 // Resolved per call: the home directory is not known at import time in tests.
 function auditFile(): string {
-  return path.join(os.homedir(), ".ai-orc", "audit.log")
+  return path.join(dataDir(), "audit.log")
 }
 
 function clean(value: unknown): string | undefined {

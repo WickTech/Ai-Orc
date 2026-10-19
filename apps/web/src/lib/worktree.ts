@@ -3,6 +3,7 @@ import { createHash } from "crypto"
 import { promises as fs } from "fs"
 import os from "os"
 import path from "path"
+import { dataDir } from "@/lib/paths"
 
 export type WorktreeErrorCode = "invalid" | "not_found" | "conflict"
 
@@ -37,7 +38,7 @@ const BRANCH_RE = /^axion\/[A-Za-z0-9._-]+$/
 
 // Resolved on every call: the home directory is not known at import time in tests.
 function worktreesRoot(): string {
-  return path.join(os.homedir(), ".ai-orc", "worktrees")
+  return path.join(dataDir(), "worktrees")
 }
 
 export function repoIdFor(realRepoPath: string): string {

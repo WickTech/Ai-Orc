@@ -25,7 +25,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { notifications } = useStore()
   const [needsSignIn, setNeedsSignIn] = useState(false)
 
-  // With AI_ORC_TOKEN set, the API refuses signed-out browsers: say so instead of showing empty pages.
+  // With AXION_TOKEN set, the API refuses signed-out browsers: say so instead of showing empty pages.
   useEffect(() => {
     if (pathname === "/login") return
     fetch("/api/config")

@@ -1,11 +1,11 @@
 import { promises as fs } from "fs"
 import path from "path"
-import os from "os"
 import { listAdapters } from "@wicktech/axion-agents"
 import type { AppConfig, Db, Tool } from "@/types"
+import { dataDir } from "@/lib/paths"
 
-const DB_DIR = path.join(os.homedir(), ".ai-orc")
-const DB_PATH = path.join(DB_DIR, "db.json")
+const dbDir = () => dataDir()
+const dbPath = () => path.join(dataDir(), "db.json")
 
 // Built-in tools come from the agent adapters, not from db.json, so a new
 // adapter shows up for existing installs without migrating their saved file.
@@ -19,17 +19,17 @@ const DEFAULT_DB: Db = {
 }
 
 async function ensureDb(): Promise<void> {
-  await fs.mkdir(DB_DIR, { recursive: true })
+  await fs.mkdir(dbDir(), { recursive: true })
   try {
-    await fs.access(DB_PATH)
+    await fs.access(dbPath())
   } catch {
-    await fs.writeFile(DB_PATH, JSON.stringify(DEFAULT_DB, null, 2))
+    await fs.writeFile(dbPath(), JSON.stringify(DEFAULT_DB, null, 2))
   }
 }
 
 async function readDb(): Promise<Db> {
   await ensureDb()
-  const raw = await fs.readFile(DB_PATH, "utf-8")
+  const raw = await fs.readFile(dbPath(), "utf-8")
   const parsed = JSON.parse(raw) as Partial<Db>
   const builtins = builtinTools()
   const builtinIds = new Set(builtins.map((t) => t.id))
@@ -44,7 +44,7 @@ async function readDb(): Promise<Db> {
 async function writeDb(db: Db): Promise<void> {
   await ensureDb()
   const persisted: Db = { ...db, tools: db.tools.filter((t) => !t.builtin) }
-  await fs.writeFile(DB_PATH, JSON.stringify(persisted, null, 2))
+  await fs.writeFile(dbPath(), JSON.stringify(persisted, null, 2))
 }
 
 export async function getConfig(): Promise<AppConfig> {

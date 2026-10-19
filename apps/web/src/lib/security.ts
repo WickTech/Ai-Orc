@@ -1,5 +1,6 @@
 import { createHash } from "crypto"
 import { allowedOrigins, allowedHosts } from "@/lib/allowedOrigins"
+import { apiToken } from "@/lib/paths"
 
 // Constant-time comparison so a token can't be guessed byte by byte from
 // response timing. Empty or missing values never match.
@@ -74,8 +75,8 @@ const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"])
 //  1. Host must be one of our own (blocks DNS rebinding, including reads).
 //  2. Mutating requests from a browser carry an Origin and it must be ours.
 //  3. Mutating requests without an Origin (curl, scripts) must present
-//     AI_ORC_TOKEN as a bearer token; with no token configured they are refused.
-//  4. With AI_ORC_TOKEN configured, every request (reads too) must carry the
+//     AXION_TOKEN as a bearer token; with no token configured they are refused.
+//  4. With AXION_TOKEN configured, every request (reads too) must carry the
 //     token as a bearer or the session cookie issued by /api/login.
 export function evaluateRequest(
   req: RequestInfo,
@@ -99,7 +100,7 @@ export function evaluateRequest(
   return { ok: false, error: "Origin header or API token required" }
 }
 
-export function defaultContext(token = process.env.AI_ORC_TOKEN) {
+export function defaultContext(token = apiToken()) {
   const origins = allowedOrigins(process.env.PORT ?? "3000", process.env.HOST ?? "127.0.0.1")
   return { origins, hosts: allowedHosts(origins), token }
 }

@@ -215,7 +215,7 @@ describe("isolated worktree sessions", () => {
     await pty.handleWsMessage(ws as never, msg({ type: "terminal:spawn", id: "w1", toolId: "claude", repoId }))
     expect(spawnMock).toHaveBeenCalledTimes(1)
     const opts = spawnMock.mock.calls[0][2] as { cwd: string }
-    expect(opts.cwd).toContain(path.join(".ai-orc", "worktrees", repoId, "w1"))
+    expect(opts.cwd).toContain(path.join(".axion", "worktrees", repoId, "w1"))
     const info = ws.sent.find((m) => m.type === "terminal:worktree")
     expect(info).toMatchObject({ id: "w1", branch: "axion/claude-w1", path: opts.cwd })
   })

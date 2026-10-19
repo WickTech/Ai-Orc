@@ -11,10 +11,10 @@ afterEach(() => {
 const load = () => import("@/lib/audit")
 
 describe("audit log", () => {
-  it("appends JSON lines to ~/.ai-orc/audit.log with a timestamp", async () => {
+  it("appends JSON lines to ~/.axion/audit.log with a timestamp", async () => {
     const { mod, home } = await withTempHome(load)
     await mod.appendAudit({ action: "rejected", repoId: "r1", session: "s1", branch: "axion/x", detail: "no" })
-    const lines = readFileSync(path.join(home, ".ai-orc", "audit.log"), "utf-8").trim().split("\n")
+    const lines = readFileSync(path.join(home, ".axion", "audit.log"), "utf-8").trim().split("\n")
     expect(lines).toHaveLength(1)
     const entry = JSON.parse(lines[0])
     expect(entry).toMatchObject({ action: "rejected", repoId: "r1", session: "s1", branch: "axion/x", detail: "no" })
@@ -37,7 +37,7 @@ describe("audit log", () => {
   it("keeps one entry per line even when a value contains newlines, and caps long strings", async () => {
     const { mod, home } = await withTempHome(load)
     await mod.appendAudit({ action: "rejected", detail: "line1\nline2\r\n" + "x".repeat(5000) })
-    const raw = readFileSync(path.join(home, ".ai-orc", "audit.log"), "utf-8")
+    const raw = readFileSync(path.join(home, ".axion", "audit.log"), "utf-8")
     expect(raw.trim().split("\n")).toHaveLength(1)
     const [entry] = await mod.readAudit(1)
     expect(entry.detail!.length).toBeLessThanOrEqual(1000)
@@ -46,7 +46,7 @@ describe("audit log", () => {
   it("skips corrupt lines instead of failing", async () => {
     const { mod, home } = await withTempHome(load)
     await mod.appendAudit({ action: "rejected", session: "ok1" })
-    appendFileSync(path.join(home, ".ai-orc", "audit.log"), "{not json\n")
+    appendFileSync(path.join(home, ".axion", "audit.log"), "{not json\n")
     await mod.appendAudit({ action: "rejected", session: "ok2" })
     expect((await mod.readAudit(10)).map((e) => e.session)).toEqual(["ok2", "ok1"])
   })
@@ -62,9 +62,9 @@ describe("audit log", () => {
   it("overwrites nothing: an existing file is only appended to", async () => {
     const { mod, home } = await withTempHome(load)
     await mod.appendAudit({ action: "rejected", session: "first" })
-    const before = readFileSync(path.join(home, ".ai-orc", "audit.log"), "utf-8")
+    const before = readFileSync(path.join(home, ".axion", "audit.log"), "utf-8")
     await mod.appendAudit({ action: "merged", session: "second" })
-    expect(readFileSync(path.join(home, ".ai-orc", "audit.log"), "utf-8").startsWith(before)).toBe(true)
-    writeFileSync(path.join(home, ".ai-orc", "other.txt"), "x") // sanity: dir shared, untouched
+    expect(readFileSync(path.join(home, ".axion", "audit.log"), "utf-8").startsWith(before)).toBe(true)
+    writeFileSync(path.join(home, ".axion", "other.txt"), "x") // sanity: dir shared, untouched
   })
 })

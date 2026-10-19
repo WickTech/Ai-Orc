@@ -70,10 +70,10 @@ describe("validateRepo", () => {
 })
 
 describe("createWorktree", () => {
-  it("creates a worktree on a new axion/ branch under ~/.ai-orc/worktrees", async () => {
+  it("creates a worktree on a new axion/ branch under ~/.axion/worktrees", async () => {
     const { wt, repo, home } = await setup()
     const info = await wt.createWorktree({ repoPath: repo, sessionId: "claude-1", toolId: "claude" })
-    expect(info.path.startsWith(path.join(realpathSync(home), ".ai-orc", "worktrees") + path.sep)).toBe(true)
+    expect(info.path.startsWith(path.join(realpathSync(home), ".axion", "worktrees") + path.sep)).toBe(true)
     expect(existsSync(path.join(info.path, "a.txt"))).toBe(true)
     expect(info.branch).toBe("axion/claude-claude-1")
     expect(git(info.path, "rev-parse", "--abbrev-ref", "HEAD")).toBe(info.branch)

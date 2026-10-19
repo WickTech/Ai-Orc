@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto"
 import { promises as fs } from "fs"
-import os from "os"
+import { dataDir } from "@/lib/paths"
 import path from "path"
 
 export const TASK_STATUSES = ["todo", "doing", "done"] as const
@@ -27,7 +27,7 @@ const MAX_TITLE = 200
 
 // Resolved per call: the home directory is not known at import time in tests.
 function tasksFile(): string {
-  return path.join(os.homedir(), ".ai-orc", "tasks.json")
+  return path.join(dataDir(), "tasks.json")
 }
 
 // Read-modify-write cycles run one at a time so concurrent requests cannot lose updates.

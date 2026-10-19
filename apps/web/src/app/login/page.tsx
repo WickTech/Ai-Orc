@@ -30,7 +30,7 @@ export default function LoginPage() {
     <div className="flex-1 flex items-center justify-center p-6">
       <form onSubmit={submit} className="w-full max-w-sm space-y-4 p-6 rounded-xl border border-white/10 bg-white/[0.02]">
         <h1 className="text-xl font-bold text-white">Sign in</h1>
-        <p className="text-xs text-white/40">Enter the AI_ORC_TOKEN this server was started with.</p>
+        <p className="text-xs text-white/40">Enter the AXION_TOKEN this server was started with.</p>
         <input
           type="password"
           value={token}

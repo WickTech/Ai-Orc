@@ -4,7 +4,7 @@ import { defaultContext, evaluateRequest } from "./lib/security"
 
 // Guards every /api route (policy in lib/security.ts): Host must be ours
 // (DNS rebinding), mutating browser requests must come from our own origin
-// (CSRF), and origin-less mutating requests need AI_ORC_TOKEN. With a token configured
+// (CSRF), and origin-less mutating requests need AXION_TOKEN. With a token configured
 // every request must be signed in (bearer or session cookie).
 export function proxy(req: NextRequest) {
   const verdict = evaluateRequest(

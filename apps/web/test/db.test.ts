@@ -11,12 +11,12 @@ afterEach(() => {
 const load = () => import("@/lib/db")
 
 describe("db", () => {
-  it("creates ~/.ai-orc/db.json with the built-in tools on first use", async () => {
+  it("creates ~/.axion/db.json with the built-in tools on first use", async () => {
     const { mod, home } = await withTempHome(load)
     const tools = await mod.getTools()
     expect(tools.map((t) => t.id)).toEqual(["claude", "gemini", "codex", "opencode"])
     expect(tools.every((t) => t.builtin)).toBe(true)
-    expect(existsSync(path.join(home, ".ai-orc", "db.json"))).toBe(true)
+    expect(existsSync(path.join(home, ".axion", "db.json"))).toBe(true)
   })
 
   it("adds new built-in adapters to an existing db.json written by an older version", async () => {
@@ -31,7 +31,7 @@ describe("db", () => {
         { id: "mine", label: "Mine", command: "mine" },
       ],
     }
-    writeFileSync(path.join(home, ".ai-orc", "db.json"), JSON.stringify(legacy))
+    writeFileSync(path.join(home, ".axion", "db.json"), JSON.stringify(legacy))
     expect((await mod.getTools()).map((t) => t.id)).toEqual(["claude", "gemini", "codex", "opencode", "mine"])
   })
 
@@ -39,7 +39,7 @@ describe("db", () => {
     const { mod, home } = await withTempHome(load)
     await mod.getTools()
     writeFileSync(
-      path.join(home, ".ai-orc", "db.json"),
+      path.join(home, ".axion", "db.json"),
       JSON.stringify({ tools: [{ id: "claude", label: "Evil", command: "sh", args: ["-c", "x"] }] }),
     )
     const claudes = (await mod.getTools()).filter((t) => t.id === "claude")
@@ -50,7 +50,7 @@ describe("db", () => {
   it("persists only custom tools, never the built-ins", async () => {
     const { mod, home } = await withTempHome(load)
     await mod.addTool({ id: "x", label: "X", command: "x" })
-    const onDisk = JSON.parse(readFileSync(path.join(home, ".ai-orc", "db.json"), "utf-8"))
+    const onDisk = JSON.parse(readFileSync(path.join(home, ".axion", "db.json"), "utf-8"))
     expect(onDisk.tools).toEqual([{ id: "x", label: "X", command: "x" }])
   })
 
@@ -63,7 +63,7 @@ describe("db", () => {
     const { mod, home } = await withTempHome(load)
     await mod.setConfig({ vaultPath: "/tmp/vault" })
     expect((await mod.getConfig()).vaultPath).toBe("/tmp/vault")
-    const onDisk = JSON.parse(readFileSync(path.join(home, ".ai-orc", "db.json"), "utf-8"))
+    const onDisk = JSON.parse(readFileSync(path.join(home, ".axion", "db.json"), "utf-8"))
     expect(onDisk.config).toEqual({ vaultPath: "/tmp/vault", port: 3000, repos: [], verify: {} })
   })
 
@@ -88,7 +88,7 @@ describe("db", () => {
   it("fills missing fields when db.json is partial", async () => {
     const { mod, home } = await withTempHome(load)
     await mod.getTools() // creates the file
-    writeFileSync(path.join(home, ".ai-orc", "db.json"), JSON.stringify({ config: { vaultPath: "/v" } }))
+    writeFileSync(path.join(home, ".axion", "db.json"), JSON.stringify({ config: { vaultPath: "/v" } }))
     expect(await mod.getConfig()).toEqual({ vaultPath: "/v", port: 3000, repos: [], verify: {} })
     expect((await mod.getTools()).length).toBe(4)
   })
@@ -104,7 +104,7 @@ describe("db", () => {
   it("setConfig keeps only known keys", async () => {
     const { mod, home } = await withTempHome(load)
     await mod.setConfig({ vaultPath: "/v", port: 4000, evil: "x" } as never)
-    const onDisk = JSON.parse(readFileSync(path.join(home, ".ai-orc", "db.json"), "utf-8"))
+    const onDisk = JSON.parse(readFileSync(path.join(home, ".axion", "db.json"), "utf-8"))
     expect(onDisk.config).toEqual({ vaultPath: "/v", port: 4000, repos: [], verify: {} })
   })
 })
