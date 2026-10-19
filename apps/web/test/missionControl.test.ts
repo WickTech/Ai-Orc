@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { readFileSync, writeFileSync } from "fs"
+import { existsSync, readFileSync, writeFileSync } from "fs"
 import path from "path"
 import { cleanupTempDirs, tempDir } from "./helpers"
 import { loadMissionControl, toMissionControl } from "@/lib/missionControl"
@@ -68,9 +68,12 @@ describe("loadMissionControl", () => {
     expect(ok.ok).toBe(true)
   })
 
-  it("reads the committed core data by default", async () => {
-    const res = await loadMissionControl()
-    expect(res.ok).toBe(true)
+  it("defaults to the data file inside packages/core", async () => {
+    const { missionControlFile } = await import("@/lib/missionControl")
+    const file = missionControlFile()
+    expect(file).toBe(path.resolve(__dirname, "../../../packages/core/data/mission-control.json"))
+    // The data file itself is generated and gitignored, but its folder is in the repo.
+    expect(existsSync(path.dirname(file))).toBe(true)
   })
 })
 
