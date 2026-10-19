@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { NextRequest } from "next/server"
 import { proxy } from "@/proxy"
+import { SESSION_COOKIE, sessionValue } from "@/lib/security"
 
 const HOST = { host: "localhost:3000" }
 const req = (method: string, headers: Record<string, string> = {}) =>
@@ -92,5 +93,48 @@ describe("proxy: requests without an Origin header", () => {
 
   it("GET needs no token", () => {
     expect(proxy(req("GET")).status).toBe(200)
+  })
+})
+
+describe("proxy: signed-in access when AI_ORC_TOKEN is set", () => {
+  const TOKEN = "s3cret-token-value"
+  const reqAt = (url: string, method: string, headers: Record<string, string> = {}) =>
+    new NextRequest(`http://localhost:3000${url}`, { method, headers: { ...HOST, ...headers } })
+
+  it("refuses even reads without a bearer token or session cookie", async () => {
+    vi.stubEnv("AI_ORC_TOKEN", TOKEN)
+    const res = proxy(reqAt("/api/config", "GET"))
+    expect(res.status).toBe(403)
+    expect((await res.json()).error).toMatch(/sign in/i)
+  })
+
+  it("accepts reads and same-origin writes with the session cookie", () => {
+    vi.stubEnv("AI_ORC_TOKEN", TOKEN)
+    const cookie = `${SESSION_COOKIE}=${sessionValue(TOKEN)}`
+    expect(proxy(reqAt("/api/config", "GET", { cookie })).status).toBe(200)
+    expect(proxy(reqAt("/api/config", "PUT", { cookie, origin: "http://localhost:3000" })).status).toBe(200)
+  })
+
+  it("rejects a cookie for another token, the raw token as a cookie value, and cross-origin writes", () => {
+    vi.stubEnv("AI_ORC_TOKEN", TOKEN)
+    expect(proxy(reqAt("/api/config", "GET", { cookie: `${SESSION_COOKIE}=${sessionValue("other")}` })).status).toBe(403)
+    expect(proxy(reqAt("/api/config", "GET", { cookie: `${SESSION_COOKIE}=${TOKEN}` })).status).toBe(403)
+    const cookie = `${SESSION_COOKIE}=${sessionValue(TOKEN)}`
+    expect(proxy(reqAt("/api/config", "PUT", { cookie, origin: "https://evil.example" })).status).toBe(403)
+  })
+
+  it("accepts a bearer token for reads, and leaves reads open when no token is configured", () => {
+    vi.stubEnv("AI_ORC_TOKEN", TOKEN)
+    expect(proxy(reqAt("/api/config", "GET", { authorization: `Bearer ${TOKEN}` })).status).toBe(200)
+    vi.unstubAllEnvs()
+    expect(proxy(reqAt("/api/config", "GET")).status).toBe(200)
+  })
+
+  it("lets only a same-origin POST reach /api/login while signed out", () => {
+    vi.stubEnv("AI_ORC_TOKEN", TOKEN)
+    expect(proxy(reqAt("/api/login", "POST", { origin: "http://localhost:3000" })).status).toBe(200)
+    expect(proxy(reqAt("/api/login", "POST")).status).toBe(403)
+    expect(proxy(reqAt("/api/login", "POST", { origin: "https://evil.example" })).status).toBe(403)
+    expect(proxy(reqAt("/api/login", "POST", { origin: "http://localhost:3000", host: "evil.example:3000" })).status).toBe(403)
   })
 })

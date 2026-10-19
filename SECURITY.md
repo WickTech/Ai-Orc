@@ -21,6 +21,7 @@ Use GitHub's private vulnerability reporting (Security tab, "Report a vulnerabil
 | A web page rebinds its DNS name to `127.0.0.1` to read your data (DNS rebinding) | Every `/api` request and the `/ws` handshake must carry a `Host` that is one of the server's own `host:port` values. |
 | Another machine on your network | The server binds to `127.0.0.1` by default. `HOST=0.0.0.0` is an explicit opt-in (see below). |
 | A script that sends no `Origin` (curl) | Mutating requests without an `Origin` are refused unless `AI_ORC_TOKEN` is set and sent as `Authorization: Bearer <token>` (compared in constant time). |
+| A local program or LAN host that forges `Origin` and `Host` | Set `AI_ORC_TOKEN`: then **every** `/api` request and the `/ws` handshake must be signed in, with the bearer token or an HttpOnly, SameSite=Strict session cookie from `/login` (the cookie holds a hash derived from the token, never the token). Failed sign-ins are throttled (10 per minute). |
 | A malicious or mistaken setting | `PUT /api/config` accepts known keys only and validates each: the vault must be an existing directory that is not `/` or your home folder; `repos` must be git repository roots; `verify` commands must be a bare program name plus plain arguments. |
 | Path traversal and symlink tricks | The vault API serves visible `.md` files only, with symlinks resolved before the containment check. Worktree session ids are slugs; the server derives all worktree paths itself. Clients send a repository *id*, never a path. |
 | Command injection | Git and verify commands run through `spawn` with an argument array and no shell. The WebSocket only starts tools registered on the server (built-in adapters or registry entries), never a command from the client. Tool commands must be bare executable names. |
@@ -33,8 +34,8 @@ Use GitHub's private vulnerability reporting (Security tab, "Report a vulnerabil
 
 Read this before exposing the app or running untrusted code.
 
-- **Local users and local processes.** There is no login. Any process running as any user on the machine can reach `127.0.0.1:<port>`. A non-browser client can send forged `Origin` and `Host` headers, and the WebSocket (which starts terminals) has no token. If your machine is shared, do not run Axion on it, or put it behind a firewall rule that limits loopback access.
-- **LAN exposure.** With `HOST=0.0.0.0` the same header checks are the only barrier, so anyone on the network who can forge them can start terminals. Do not use it on networks you do not trust. Use an SSH tunnel instead.
+- **Local users and local processes, unless you set `AI_ORC_TOKEN`.** Without a token there is no login: any process running as any user on the machine can reach `127.0.0.1:<port>`, and a non-browser client can send forged `Origin` and `Host` headers, including to the WebSocket that starts terminals. Set `AI_ORC_TOKEN` (see the checklist) on any machine where you do not fully trust every local process or user. The token is read from the server's environment, so a process that can read your environment can still get it.
+- **LAN exposure.** With `HOST=0.0.0.0` and no token, the header checks are the only barrier, so anyone on the network who can forge them can start terminals; with a token they also need to sign in (over plain HTTP, so the token and cookie can be sniffed on the network). Do not use it on networks you do not trust. Use an SSH tunnel instead.
 - **The agents themselves.** Agents run with your user's privileges, with your environment variables, inside a worktree that is *not* a sandbox. A worktree isolates git state, not the filesystem or the network. An agent can read your home directory, call the network and run anything you could. Only run agents you trust on repositories you trust. (A container sandbox is a possible future feature, not a current one.)
 - **Verify commands and git hooks.** The verify command and your repository's own hooks execute code from the session's worktree, which an agent may have changed. Treat them as running the agent's code.
 - **Review mistakes.** The approval gate proves you merged what you saw, not that what you saw is safe. Large diffs are displayed truncated at 512 KB (the hash still covers the whole diff).
@@ -49,7 +50,7 @@ Early versions of this project (as AI-Orc) allowed unauthenticated requests from
 ## Safe use checklist
 
 1. Keep the default `HOST=127.0.0.1`.
-2. Set `AI_ORC_TOKEN` if you script against the API: `AI_ORC_TOKEN=$(openssl rand -hex 24) npm run dev`.
+2. Set `AI_ORC_TOKEN`: `AI_ORC_TOKEN=$(openssl rand -hex 24) npm run dev`. Open the app, sign in at `/login` with that token; scripts send `Authorization: Bearer <token>`.
 3. Open the app via `http://localhost:<port>` or `http://127.0.0.1:<port>`; other host names are refused.
 4. Review every diff yourself. Configure a verify command for repositories that have tests.
 5. Keep secrets out of repositories you let agents work in, and out of your shell environment where possible.
