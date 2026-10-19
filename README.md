@@ -152,23 +152,21 @@ The Dashboard passes spawn info through URL params (e.g. `/terminals?id=claude-1
 
 ---
 
-## Security model
+## Security
 
-AI-Orc can spawn terminals and read/write your notes, so the server is locked down by default:
+Axion starts terminals and merges agent work into your repositories, so it is locked down by default: loopback only, Host and Origin checks, an optional API token for scripts, validated settings, no client-supplied paths or commands, and an approval gate bound to the exact reviewed diff.
 
-- **Loopback only.** It binds to `127.0.0.1`. Set `HOST=0.0.0.0` only if you accept LAN exposure; the LAN addresses of this machine are then added to the allow-list.
-- **Host check (DNS rebinding).** Every `/api` request and the `/ws` handshake must carry a `Host` header that is one of this server's own `host:port` values. A page that rebinds `evil.example` to `127.0.0.1` is rejected, reads included. Reach the app via `localhost` or `127.0.0.1` (or the LAN IP when `HOST` is set), not another hostname.
-- **Origin check (CSRF).** Mutating requests from a browser must come from the app's own origin; the WebSocket handshake too.
-- **Scripts need a token.** A mutating request with no `Origin` header (curl, scripts) is refused unless `AI_ORC_TOKEN` is set and sent as `Authorization: Bearer <token>`:
-  ```bash
-  AI_ORC_TOKEN=$(openssl rand -hex 24) npm run dev
-  curl -X PUT http://127.0.0.1:3000/api/config -H "Authorization: Bearer $AI_ORC_TOKEN" \
-       -H 'Content-Type: application/json' -d '{"port":3000}'
-  ```
-- **Settings are validated.** `PUT /api/config` accepts only `vaultPath` and `port`. The vault must be an existing directory, and `/` or your home folder (or a parent of it) is refused.
-- **The vault API serves notes only.** Only visible `.md` files inside the vault, with symlinks resolved before the check. Dotfiles and dot-folders are refused.
-- **Registry clones are GitHub-only.** `https://github.com/<owner>/<repo>` exactly: no other host or scheme, no credentials, no extra path. A repo named like a built-in tool never replaces the built-in.
-- **Terminals run registered tools only.** The WebSocket spawns the command stored in the registry, never one supplied by the client.
+It is **not** a sandbox and has no login: agents run with your privileges, and any local process can reach the port. Read [SECURITY.md](SECURITY.md) for the full threat model, what is and is not protected, the safe-use checklist and how to report a vulnerability.
+
+Quick reference for scripts that call mutating API routes without a browser:
+
+```bash
+AI_ORC_TOKEN=$(openssl rand -hex 24) npm run dev
+curl -X PUT http://127.0.0.1:3000/api/config -H "Authorization: Bearer $AI_ORC_TOKEN" \
+     -H 'Content-Type: application/json' -d '{"port":3000}'
+```
+
+Open the app via `localhost` or `127.0.0.1`; other host names get `403 Invalid host`.
 
 ## Local config
 
