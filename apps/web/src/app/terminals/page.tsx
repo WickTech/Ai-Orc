@@ -17,9 +17,11 @@ function SpawnFromUrl() {
     const toolId = params.get("toolId") ?? params.get("id")?.replace(/-\d+$/, "") ?? ""
     const id = params.get("id") ?? (toolId ? `${toolId}-${Date.now()}` : null)
 
+    const repoId = params.get("repoId") ?? undefined
+
     if (id && toolId && label) {
-      addTerminal({ id, toolId, label, status: "running" })
-      send({ type: "terminal:spawn", id, toolId })
+      addTerminal({ id, toolId, label, status: "running", repoId })
+      send({ type: "terminal:spawn", id, toolId, repoId })
       router.replace("/terminals")
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps

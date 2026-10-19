@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { cleanupTempDirs, withTempHome } from "./helpers"
+import { execFileSync } from "child_process"
+import { realpathSync, writeFileSync } from "fs"
+import path from "path"
+import { cleanupTempDirs, tempDir, withTempHome } from "./helpers"
 
 type Handler = (arg: never) => void
 function fakeProc() {
@@ -168,5 +171,103 @@ describe("cleanupClientPtys", () => {
     expect(procs[0].kill).toHaveBeenCalled()
     expect(procs[1].kill).not.toHaveBeenCalled()
     expect(pty.getRunningPtys()).toEqual(["b1"])
+  })
+})
+
+function makeRepo(): string {
+  const dir = realpathSync(tempDir("ai-orc-repo-"))
+  const run = (...args: string[]) =>
+    execFileSync("git", args, {
+      cwd: dir,
+      env: { ...process.env, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@t", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@t" },
+    })
+  run("init", "-q", "-b", "main")
+  writeFileSync(path.join(dir, "a.txt"), "one\n")
+  run("add", ".")
+  run("commit", "-q", "-m", "init")
+  return dir
+}
+
+async function loadWithRepo() {
+  const { mod, home } = await withTempHome(() => import("@/lib/pty"))
+  const db = await import("@/lib/db")
+  const wt = await import("@/lib/worktree")
+  const repo = makeRepo()
+  await db.setConfig({ repos: [repo] })
+  return { pty: mod, home, repo, repoId: wt.repoIdFor(repo) }
+}
+
+describe("isolated worktree sessions", () => {
+  it("spawns inside a fresh worktree and tells the client the branch and path", async () => {
+    const { pty, repoId } = await loadWithRepo()
+    const ws = fakeWs()
+    await pty.handleWsMessage(ws as never, msg({ type: "terminal:spawn", id: "w1", toolId: "claude", repoId }))
+    expect(spawnMock).toHaveBeenCalledTimes(1)
+    const opts = spawnMock.mock.calls[0][2] as { cwd: string }
+    expect(opts.cwd).toContain(path.join(".ai-orc", "worktrees", repoId, "w1"))
+    const info = ws.sent.find((m) => m.type === "terminal:worktree")
+    expect(info).toMatchObject({ id: "w1", branch: "axion/claude-w1", path: opts.cwd })
+  })
+
+  it("reuses the worktree when the same session is started again (restart), even if main became dirty", async () => {
+    const { pty, repo, repoId } = await loadWithRepo()
+    const ws = fakeWs()
+    await pty.handleWsMessage(ws as never, msg({ type: "terminal:spawn", id: "w5", toolId: "claude", repoId }))
+    const first = (spawnMock.mock.calls[0][2] as { cwd: string }).cwd
+    writeFileSync(path.join(repo, "a.txt"), "dirty\n")
+    await pty.handleWsMessage(ws as never, msg({ type: "terminal:spawn", id: "w5", toolId: "claude", repoId }))
+    expect(spawnMock).toHaveBeenCalledTimes(2)
+    expect((spawnMock.mock.calls[1][2] as { cwd: string }).cwd).toBe(first)
+  })
+
+  it("does not reuse a worktree that belongs to a different tool", async () => {
+    const { pty, repoId } = await loadWithRepo()
+    const ws = fakeWs()
+    await pty.handleWsMessage(ws as never, msg({ type: "terminal:spawn", id: "w6", toolId: "claude", repoId }))
+    await pty.handleWsMessage(ws as never, msg({ type: "terminal:spawn", id: "w6", toolId: "codex", repoId }))
+    expect(spawnMock).toHaveBeenCalledTimes(1)
+    expect(ws.sent.some((m) => String(m.data ?? "").includes("already exists"))).toBe(true)
+  })
+
+  it("refuses an unknown repo id without spawning", async () => {
+    const { pty } = await loadWithRepo()
+    const ws = fakeWs()
+    await pty.handleWsMessage(ws as never, msg({ type: "terminal:spawn", id: "w2", toolId: "claude", repoId: "deadbeef0000" }))
+    expect(spawnMock).not.toHaveBeenCalled()
+    expect(String(ws.sent[0].data)).toContain("Unknown repository")
+    expect(ws.sent.some((m) => m.type === "terminal:exit" && m.code === 1)).toBe(true)
+  })
+
+  it("refuses to start when the repository has uncommitted changes", async () => {
+    const { pty, repo, repoId } = await loadWithRepo()
+    writeFileSync(path.join(repo, "a.txt"), "dirty\n")
+    const ws = fakeWs()
+    await pty.handleWsMessage(ws as never, msg({ type: "terminal:spawn", id: "w3", toolId: "claude", repoId }))
+    expect(spawnMock).not.toHaveBeenCalled()
+    expect(String(ws.sent[0].data)).toContain("uncommitted changes")
+  })
+
+  it("ignores a client-supplied cwd or path and only trusts the configured repo list", async () => {
+    const { pty, repoId } = await loadWithRepo()
+    const ws = fakeWs()
+    await pty.handleWsMessage(
+      ws as never,
+      msg({ type: "terminal:spawn", id: "w4", toolId: "claude", repoId, cwd: "/etc", path: "/etc" }),
+    )
+    expect((spawnMock.mock.calls[0][2] as { cwd: string }).cwd).not.toContain("/etc")
+  })
+
+  it("rejects a session id that is not a safe slug", async () => {
+    const { pty, repoId } = await loadWithRepo()
+    const ws = fakeWs()
+    await pty.handleWsMessage(ws as never, msg({ type: "terminal:spawn", id: "../x", toolId: "claude", repoId }))
+    expect(spawnMock).not.toHaveBeenCalled()
+  })
+
+  it("keeps launching plain sessions in the home directory when no repo is chosen", async () => {
+    const { pty, home } = await loadWithRepo()
+    const ws = fakeWs()
+    await pty.handleWsMessage(ws as never, msg({ type: "terminal:spawn", id: "p1", toolId: "claude" }))
+    expect((spawnMock.mock.calls[0][2] as { cwd: string }).cwd).toBe(home)
   })
 })

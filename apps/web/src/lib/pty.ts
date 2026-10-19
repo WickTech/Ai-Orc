@@ -1,7 +1,8 @@
 import * as pty from "node-pty"
 import type { WebSocket } from "ws"
 import type { WsMessage } from "@/types"
-import { getTools } from "@/lib/db"
+import { getConfig, getTools } from "@/lib/db"
+import { createWorktree, findWorktree, repoIdFor, validateRepo, WorktreeError } from "@/lib/worktree"
 
 interface PtyEntry {
   process: pty.IPty
@@ -16,7 +17,7 @@ function send(ws: WebSocket, msg: WsMessage): void {
   }
 }
 
-export function spawnPty(id: string, command: string, args: string[], ws: WebSocket): void {
+export function spawnPty(id: string, command: string, args: string[], ws: WebSocket, cwd?: string): void {
   killPty(id)
 
   let proc: pty.IPty
@@ -25,7 +26,7 @@ export function spawnPty(id: string, command: string, args: string[], ws: WebSoc
       name: "xterm-color",
       cols: 80,
       rows: 24,
-      cwd: process.env.HOME || process.cwd(),
+      cwd: cwd ?? (process.env.HOME || process.cwd()),
       env: process.env as Record<string, string>,
     })
   } catch (err) {
@@ -59,6 +60,25 @@ export function killPty(id: string): void {
   }
 }
 
+async function startWorktreeSession(ws: WebSocket, id: string, toolId: string, repoId: string): Promise<string> {
+  const { repos } = await getConfig()
+  let repoPath: string | undefined
+  for (const candidate of repos) {
+    const real = await validateRepo(candidate).catch(() => null)
+    if (real && repoIdFor(real) === repoId) repoPath = real
+  }
+  if (!repoPath) throw new WorktreeError("Unknown repository: add it in Settings first")
+  // Restarting a session resumes its worktree (the agent's work is in it).
+  const existing = await findWorktree(repoPath, id)
+  if (existing?.exists && existing.toolId === toolId) {
+    send(ws, { type: "terminal:worktree", id, branch: existing.branch, path: existing.path })
+    return existing.path
+  }
+  const info = await createWorktree({ repoPath, sessionId: id, toolId })
+  send(ws, { type: "terminal:worktree", id, branch: info.branch, path: info.path })
+  return info.path
+}
+
 export async function handleWsMessage(ws: WebSocket, raw: string): Promise<void> {
   let msg: WsMessage
   try {
@@ -77,7 +97,20 @@ export async function handleWsMessage(ws: WebSocket, raw: string): Promise<void>
         send(ws, { type: "terminal:exit", id: msg.id, code: 1 })
         break
       }
-      spawnPty(msg.id, tool.command, tool.args ?? [], ws)
+      let cwd: string | undefined
+      if (msg.repoId) {
+        // Only ids of repos in the saved config are honoured; the message never
+        // carries a path, so a client cannot pick an arbitrary directory.
+        try {
+          cwd = await startWorktreeSession(ws, msg.id, tool.id, msg.repoId)
+        } catch (err) {
+          const text = err instanceof WorktreeError ? err.message : String(err)
+          send(ws, { type: "terminal:output", id: msg.id, data: `\r\n\x1b[31m${text}\x1b[0m\r\n` })
+          send(ws, { type: "terminal:exit", id: msg.id, code: 1 })
+          break
+        }
+      }
+      spawnPty(msg.id, tool.command, tool.args ?? [], ws, cwd)
       break
     }
     case "terminal:input":

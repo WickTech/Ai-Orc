@@ -1,15 +1,22 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useStore } from "@/store"
 import { Terminal, Activity, Cpu, Zap } from "lucide-react"
 import type { Tool } from "@/types"
 
-function ToolLaunchCard({ tool }: { tool: Tool }) {
+interface RepoOption {
+  id: string
+  name: string
+  path: string
+}
+
+function ToolLaunchCard({ tool, repos }: { tool: Tool; repos: RepoOption[] }) {
   const { terminals } = useStore()
+  const [repoId, setRepoId] = useState("")
   const running = terminals.filter((t) => t.toolId === tool.id && t.status === "running")
-  const href = `/terminals?label=${encodeURIComponent(tool.label)}&toolId=${tool.id}`
+  const href = `/terminals?label=${encodeURIComponent(tool.label)}&toolId=${tool.id}${repoId ? `&repoId=${repoId}` : ""}`
 
   return (
     <div className="p-5 rounded-xl border border-white/10 bg-white/[0.02] flex flex-col gap-4">
@@ -35,6 +42,24 @@ function ToolLaunchCard({ tool }: { tool: Tool }) {
         <p className="text-sm text-white/40 font-mono mt-1">{tool.command}</p>
       </div>
 
+      {repos.length > 0 && (
+        <label className="flex flex-col gap-1 text-xs text-white/40">
+          Isolated worktree
+          <select
+            value={repoId}
+            onChange={(e) => setRepoId(e.target.value)}
+            className="bg-white/5 border border-white/10 rounded-md px-2 py-1.5 text-sm text-white/80 outline-none"
+          >
+            <option value="">None (run in home folder)</option>
+            {repos.map((r) => (
+              <option key={r.id} value={r.id} title={r.path}>
+                {r.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+
       <Link
         href={href}
         className="flex items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-sm font-medium py-2 px-3 transition-colors"
@@ -48,6 +73,7 @@ function ToolLaunchCard({ tool }: { tool: Tool }) {
 
 export default function DashboardPage() {
   const { tools, setTools, terminals } = useStore()
+  const [repos, setRepos] = useState<RepoOption[]>([])
 
   useEffect(() => {
     fetch("/api/config")
@@ -55,6 +81,10 @@ export default function DashboardPage() {
       .then((d) => {
         if (Array.isArray(d.tools) && d.tools.length > 0) setTools(d.tools)
       })
+      .catch(() => {})
+    fetch("/api/worktrees")
+      .then((r) => r.json())
+      .then((d) => { if (Array.isArray(d.repos)) setRepos(d.repos) })
       .catch(() => {})
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -85,7 +115,7 @@ export default function DashboardPage() {
           <div>
             <h2 className="text-xs font-semibold text-white/30 uppercase tracking-wider mb-3">Tools & Models</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {tools.map((tool) => <ToolLaunchCard key={tool.id} tool={tool} />)}
+              {tools.map((tool) => <ToolLaunchCard key={tool.id} tool={tool} repos={repos} />)}
             </div>
           </div>
         )}

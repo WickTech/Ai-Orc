@@ -28,7 +28,7 @@ export function TerminalPanel({ terminal, tool }: TerminalPanelProps) {
   function handleRestart() {
     send({ type: "terminal:kill", id: terminal.id })
     updateTerminalStatus(terminal.id, "running")
-    send({ type: "terminal:spawn", id: terminal.id, toolId: terminal.toolId })
+    send({ type: "terminal:spawn", id: terminal.id, toolId: terminal.toolId, repoId: terminal.repoId })
   }
 
   const statusColor =
@@ -44,6 +44,14 @@ export function TerminalPanel({ terminal, tool }: TerminalPanelProps) {
         <span className="text-[10px] border border-white/20 text-white/40 rounded px-1 py-0.5 ml-1 font-mono">
           {tool.command}
         </span>
+        {terminal.branch && (
+          <span
+            title={terminal.worktreePath}
+            className="text-[10px] border border-emerald-500/30 text-emerald-300/80 rounded px-1 py-0.5 font-mono"
+          >
+            {terminal.branch}
+          </span>
+        )}
         <div className="flex-1" />
         <button
           type="button"
