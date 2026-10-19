@@ -70,7 +70,7 @@ app
     const wss = new WebSocketServer({ noServer: true })
 
     httpServer.on("upgrade", (request, socket, head) => {
-      if (isAllowedUpgrade(request, ALLOWED_WS_ORIGINS, ALLOWED_WS_HOSTS)) {
+      if (isAllowedUpgrade(request, ALLOWED_WS_ORIGINS, ALLOWED_WS_HOSTS, process.env.AI_ORC_TOKEN)) {
         wss.handleUpgrade(request, socket, head, (ws) => wss.emit("connection", ws, request))
       } else {
         socket.destroy()

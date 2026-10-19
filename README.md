@@ -158,7 +158,7 @@ Axion starts terminals and merges agent work into your repositories, so it is lo
 
 It is **not** a sandbox and has no login: agents run with your privileges, and any local process can reach the port. Read [SECURITY.md](SECURITY.md) for the full threat model, what is and is not protected, the safe-use checklist and how to report a vulnerability.
 
-Quick reference for scripts that call mutating API routes without a browser:
+Set `AI_ORC_TOKEN` to require sign-in (at `/login`) for every API request and for the terminal WebSocket; without it, any local process can reach the port. Scripts use the token as a bearer:
 
 ```bash
 AI_ORC_TOKEN=$(openssl rand -hex 24) npm run dev
