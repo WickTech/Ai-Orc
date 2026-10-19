@@ -1,11 +1,14 @@
 import { create } from "zustand"
+import { listAdapters } from "@wicktech/axion-agents"
 import type { Tool, TerminalState, TerminalStatus } from "@/types"
 
-const DEFAULT_TOOLS: Tool[] = [
-  { id: "claude", label: "Claude Code", command: "claude", builtin: true },
-  { id: "gemini", label: "Gemini CLI", command: "gemini", builtin: true },
-  { id: "codex", label: "Codex CLI", command: "codex", builtin: true },
-]
+const DEFAULT_TOOLS: Tool[] = listAdapters().map((a) => ({
+  id: a.id,
+  label: a.label,
+  command: a.command,
+  args: [...a.args],
+  builtin: true,
+}))
 
 interface AppStore {
   tools: Tool[]

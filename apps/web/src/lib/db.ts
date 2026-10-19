@@ -1,18 +1,21 @@
 import { promises as fs } from "fs"
 import path from "path"
 import os from "os"
+import { listAdapters } from "@wicktech/axion-agents"
 import type { AppConfig, Db, Tool } from "@/types"
 
 const DB_DIR = path.join(os.homedir(), ".ai-orc")
 const DB_PATH = path.join(DB_DIR, "db.json")
 
+// Built-in tools come from the agent adapters, not from db.json, so a new
+// adapter shows up for existing installs without migrating their saved file.
+export function builtinTools(): Tool[] {
+  return listAdapters().map((a) => ({ id: a.id, label: a.label, command: a.command, args: [...a.args], builtin: true }))
+}
+
 const DEFAULT_DB: Db = {
   config: { vaultPath: "", port: 3000 },
-  tools: [
-    { id: "claude", label: "Claude Code", command: "claude", builtin: true },
-    { id: "gemini", label: "Gemini CLI", command: "gemini", builtin: true },
-    { id: "codex", label: "Codex CLI", command: "codex", builtin: true },
-  ],
+  tools: [],
 }
 
 async function ensureDb(): Promise<void> {
@@ -28,15 +31,20 @@ async function readDb(): Promise<Db> {
   await ensureDb()
   const raw = await fs.readFile(DB_PATH, "utf-8")
   const parsed = JSON.parse(raw) as Partial<Db>
+  const builtins = builtinTools()
+  const builtinIds = new Set(builtins.map((t) => t.id))
+  // Saved entries for built-in ids (older versions stored them) are ignored.
+  const custom = (parsed.tools ?? []).filter((t) => !t.builtin && !builtinIds.has(t.id))
   return {
     config: { ...DEFAULT_DB.config, ...parsed.config },
-    tools: parsed.tools ?? DEFAULT_DB.tools,
+    tools: [...builtins, ...custom],
   }
 }
 
 async function writeDb(db: Db): Promise<void> {
   await ensureDb()
-  await fs.writeFile(DB_PATH, JSON.stringify(db, null, 2))
+  const persisted: Db = { ...db, tools: db.tools.filter((t) => !t.builtin) }
+  await fs.writeFile(DB_PATH, JSON.stringify(persisted, null, 2))
 }
 
 export async function getConfig(): Promise<AppConfig> {

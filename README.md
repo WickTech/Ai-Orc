@@ -21,6 +21,12 @@
 
 ---
 
+## Adding an agent adapter
+
+Built-in tools are agent adapters in `packages/agents`. To support a new CLI, add `packages/agents/src/adapters/<name>.ts` exporting an `AgentAdapter` (id, label, bare `command`, `args`, `installHint`, `capabilities`, optional `headlessArgs`) and list it in `packages/agents/src/registry.ts`. Commands must be bare executable names (no paths or spaces); the registry rejects anything else. Existing installs pick up new built-ins automatically because built-ins are not stored in `~/.ai-orc/db.json`.
+
+---
+
 ## Built-in tools
 
 Out of the box AI-Orc launches terminals for:
@@ -28,6 +34,7 @@ Out of the box AI-Orc launches terminals for:
 - **Claude Code** (`claude`)
 - **Gemini CLI** (`gemini`)
 - **Codex CLI** (`codex`)
+- **OpenCode** (`opencode`)
 
 Any of these you have installed will work immediately. Add more via the Registry.
 
