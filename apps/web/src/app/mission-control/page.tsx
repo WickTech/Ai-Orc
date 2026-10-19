@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { AlertTriangle, Loader2 } from "lucide-react"
+import { SessionBoard } from "@/components/sessions/SessionBoard"
 import type { McMetric, MissionControl } from "@/lib/missionControl"
 
 const fmt = (m: McMetric) => (m.value === null ? "UNAVAILABLE" : String(m.value))
@@ -41,6 +42,8 @@ export default function MissionControlPage() {
             {data && ` Generated ${new Date(data.generatedAt).toLocaleString()} (${data.dataMode}).`}
           </p>
         </div>
+
+        <SessionBoard />
 
         {loading && <Loader2 className="h-5 w-5 animate-spin text-white/40" />}
         {error && <p role="alert" className="text-sm text-amber-300">{error}</p>}
