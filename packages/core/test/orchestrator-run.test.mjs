@@ -387,7 +387,7 @@ test('CRITICAL #1: no agent config can Write/Edit outside data/**', () => {
 //
 // review round 3 IMPORTANT (new): a broad `Read(~/**)` deny was wrong for
 // this project specifically, because the repo lives under $HOME
-// (/home/rishi/github/axion) and deny rules beat allow rules — that deny
+// (<repo root>/packages/core) and deny rules beat allow rules — that deny
 // would have blocked every agent from reading its own repo. `Read(./**)`
 // as the only allow already confines reads to the repo; the deny list now
 // names specific sensitive paths instead of the whole home directory.

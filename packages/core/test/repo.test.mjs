@@ -4,16 +4,18 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
 const rootDir = process.cwd();
+// packages/core lives two levels below the monorepo root (CI workflow and lockfile live there).
+const monorepoRoot = path.resolve(rootDir, '..', '..');
 
 test('AC-60: CI workflow runs on push/pull_request with the expected steps', async () => {
-  const text = await fs.readFile(path.join(rootDir, '.github', 'workflows', 'ci.yml'), 'utf8');
+  const text = await fs.readFile(path.join(monorepoRoot, '.github', 'workflows', 'ci.yml'), 'utf8');
   assert.ok(text.includes('actions/checkout@v4'));
   assert.ok(text.includes('actions/setup-node@v4'));
   assert.ok(text.includes('node-version: 22'));
   assert.ok(text.includes('cache: npm'));
   assert.ok(text.includes('npm ci'));
   assert.ok(text.includes('npm test'));
-  assert.ok(text.includes('npm run build:data && npm run validate'));
+  assert.ok(text.includes('npm run validate'));
   assert.match(text, /on:\s*\n\s*push:/);
   assert.match(text, /pull_request:/);
 });
@@ -62,10 +64,11 @@ test('AC-61: .env.example lists AXION_PORT and every process.env.<NAME> used in 
   }
 });
 
-test('AC-62: package-lock.json exists, is valid JSON, and matches package.json (npm ci itself is run manually, not from inside the suite)', async () => {
-  const lock = JSON.parse(await fs.readFile(path.join(rootDir, 'package-lock.json'), 'utf8'));
-  const pkg = JSON.parse(await fs.readFile(path.join(rootDir, 'package.json'), 'utf8'));
-  assert.equal(lock.name, pkg.name);
+test('AC-62: the monorepo package-lock.json exists, is valid JSON, and pins this workspace and jsdom (npm ci itself is run manually, not from inside the suite)', async () => {
+  const lock = JSON.parse(await fs.readFile(path.join(monorepoRoot, 'package-lock.json'), 'utf8'));
+  const rootPkg = JSON.parse(await fs.readFile(path.join(monorepoRoot, 'package.json'), 'utf8'));
+  assert.equal(lock.name, rootPkg.name);
+  assert.ok(lock.packages['packages/core'], 'the lockfile must include the packages/core workspace');
   assert.ok(lock.packages, 'lockfile must be in the npm v7+ "packages" format that npm ci understands');
   assert.ok(lock.packages['node_modules/jsdom'], 'the lockfile must pin jsdom, the only devDependency');
 });

@@ -1,9 +1,9 @@
 {
-  "name": "axion",
+  "name": "@wicktech/axion-core",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "AXION Mission Control — local read-only dashboard and orchestrator",
+  "description": "AXION Mission Control: local read-only dashboard and approval-gated orchestrator",
   "engines": {
     "node": ">=22"
   },
@@ -20,7 +20,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {},
   "devDependencies": {
     "jsdom": "29.1.1"
