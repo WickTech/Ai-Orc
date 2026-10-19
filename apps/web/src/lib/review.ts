@@ -134,6 +134,17 @@ export async function approveMerge(
   if ((await runGit(repoPath, ["status", "--porcelain", "--untracked-files=no"])) !== "") {
     return refuse(repoPath, status, "The repository has uncommitted changes: commit or stash them before merging")
   }
+  // Untracked files are not "uncommitted changes" to git, but a merge that adds
+  // a file with the same name would fail halfway: say so before committing anything.
+  const untracked = new Set((await runGit(repoPath, ["ls-files", "--others", "--exclude-standard", "-z"])).split("\0").filter(Boolean))
+  const clashes = review.files.filter((f) => f.status === "added" && untracked.has(f.path)).map((f) => f.path)
+  if (clashes.length > 0) {
+    return refuse(
+      repoPath,
+      status,
+      `Untracked files in your checkout would be overwritten by this merge: ${clashes.slice(0, 5).join(", ")}${clashes.length > 5 ? ", ..." : ""}. Move or delete them, then approve again`,
+    )
+  }
 
   if ((await getConfig()).verify?.[repoPath]) {
     const verified = await readVerify(repoPath, id)
