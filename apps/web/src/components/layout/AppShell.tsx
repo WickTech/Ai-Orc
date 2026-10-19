@@ -46,8 +46,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Cpu className="h-4 w-4 text-white" />
           </div>
           <div>
-            <p className="text-sm font-bold text-white leading-none">AI-Orc</p>
-            <p className="text-[10px] text-white/30 mt-0.5">AI Platform Orchestrator</p>
+            <p className="text-sm font-bold text-white leading-none">Axion</p>
+            <p className="text-[10px] text-white/30 mt-0.5">Agent mission control</p>
           </div>
         </div>
 

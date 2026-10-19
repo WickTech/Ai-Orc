@@ -1,6 +1,6 @@
-# AI-Orc — AI Platform Orchestrator
+# Axion — mission control for AI coding agents
 
-> A local, open-source web app to observe and control all your AI language model CLIs from one place.
+> A local, open-source web app to run AI coding CLIs in isolated git worktrees, review their diffs, and merge only what you approve. Formerly *AI-Orc*; the old standalone dashboard repo is archived as [axion-legacy](https://github.com/WickTech/axion-legacy) and now lives in `packages/core`.
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org)
@@ -45,7 +45,7 @@ Built-in tools are agent adapters in `packages/agents`. To support a new CLI, ad
 
 ## Built-in tools
 
-Out of the box AI-Orc launches terminals for:
+Out of the box Axion launches terminals for:
 
 - **Claude Code** (`claude`)
 - **Gemini CLI** (`gemini`)
@@ -68,8 +68,8 @@ Any of these you have installed will work immediately. Add more via the Registry
 ## Install & run
 
 ```bash
-git clone https://github.com/WickTech/Ai-Orc
-cd Ai-Orc
+git clone https://github.com/WickTech/axion
+cd axion
 npm install    # installs every workspace from the repo root
 npm run dev    # starts apps/web
 ```
@@ -101,7 +101,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 1. Go to **Registry**
 2. Paste any GitHub URL: `https://github.com/owner/repo`
-3. AI-Orc clones the repo to `~/.ai-orc/tools/owner/repo`
+3. Axion clones the repo to `~/.ai-orc/tools/owner/repo`
 4. Install steps are extracted from the README — copy and run them
 5. The tool is saved to your registry and appears on the Dashboard
 
@@ -221,6 +221,6 @@ All state lives at `~/.ai-orc/db.json` — never committed to git.
 
 ## Contributing
 
-PRs welcome. Issues: [github.com/WickTech/Ai-Orc/issues](https://github.com/WickTech/Ai-Orc/issues)
+PRs welcome. Issues: [github.com/WickTech/axion/issues](https://github.com/WickTech/axion/issues)
 
 License: [MIT](LICENSE)

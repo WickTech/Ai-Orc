@@ -45,7 +45,7 @@ Read this before exposing the app or running untrusted code.
 
 ### History
 
-Early versions of this project (as AI-Orc) allowed unauthenticated requests from the local network to spawn terminals. That was fixed by the loopback default, Host/Origin checks and the token (PR #2 and PR #4). The tests in `apps/web/test/security.test.ts` and `proxy.test.ts` pin that behaviour.
+Early versions of this project (as AI-Orc) allowed unauthenticated requests from the local network to spawn terminals. That was fixed by the loopback default, Host/Origin checks and the token (PR #2 and PR #4, when the project was still called AI-Orc). The tests in `apps/web/test/security.test.ts` and `proxy.test.ts` pin that behaviour.
 
 ## Safe use checklist
 
