@@ -56,11 +56,11 @@ afterEach(() => {
 const load = () => import("@/lib/registry")
 
 describe("cloneAndAnalyze", () => {
-  it("shallow-clones into ~/.ai-orc/tools/<owner>/<repo>", async () => {
+  it("shallow-clones into ~/.axion/tools/<owner>/<repo>", async () => {
     const { mod, home } = await withTempHome(load)
     const result = await mod.cloneAndAnalyze("https://github.com/acme/cool-tool")
 
-    const expected = path.join(home, ".ai-orc", "tools", "acme", "cool-tool")
+    const expected = path.join(home, ".axion", "tools", "acme", "cool-tool")
     expect(result.clonePath).toBe(expected)
     expect(result.name).toBe("cool-tool")
     expect(clone).toHaveBeenCalledWith("https://github.com/acme/cool-tool", expected, ["--depth", "1"])
@@ -74,7 +74,7 @@ describe("cloneAndAnalyze", () => {
 
   it("pulls instead of cloning when the repo is already there", async () => {
     const { mod, home } = await withTempHome(load)
-    mkdirSync(path.join(home, ".ai-orc", "tools", "acme", "cool-tool"), { recursive: true })
+    mkdirSync(path.join(home, ".axion", "tools", "acme", "cool-tool"), { recursive: true })
     await mod.cloneAndAnalyze("https://github.com/acme/cool-tool")
     expect(pull).toHaveBeenCalledTimes(1)
     expect(clone).not.toHaveBeenCalled()
@@ -128,7 +128,7 @@ describe("cloneAndAnalyze", () => {
 
   it("never clones outside the tools directory, even with ../ or encoded dot segments", async () => {
     const { mod, home } = await withTempHome(load)
-    const toolsDir = path.join(home, ".ai-orc", "tools")
+    const toolsDir = path.join(home, ".axion", "tools")
     for (const url of [
       "https://github.com/../x/y",
       "https://github.com/a/%2e%2e/%2e%2e/b/c",

@@ -7,6 +7,7 @@ import { startVaultWatcher } from "./src/lib/vault"
 import { getConfig } from "./src/lib/db"
 import { allowedOrigins, allowedHosts } from "./src/lib/allowedOrigins"
 import { isAllowedUpgrade } from "./src/lib/security"
+import { apiToken } from "./src/lib/paths"
 import type { WsMessage } from "./src/types"
 
 process.on("uncaughtException", (err) => {
@@ -70,7 +71,7 @@ app
     const wss = new WebSocketServer({ noServer: true })
 
     httpServer.on("upgrade", (request, socket, head) => {
-      if (isAllowedUpgrade(request, ALLOWED_WS_ORIGINS, ALLOWED_WS_HOSTS, process.env.AI_ORC_TOKEN)) {
+      if (isAllowedUpgrade(request, ALLOWED_WS_ORIGINS, ALLOWED_WS_HOSTS, apiToken())) {
         wss.handleUpgrade(request, socket, head, (ws) => wss.emit("connection", ws, request))
       } else {
         socket.destroy()

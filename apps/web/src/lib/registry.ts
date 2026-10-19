@@ -1,10 +1,10 @@
 import path from "path"
-import os from "os"
+import { dataDir } from "@/lib/paths"
 import { promises as fs } from "fs"
 import simpleGit from "simple-git"
 import type { InstallStep, RegistryAddResult } from "@/types"
 
-const TOOLS_DIR = path.join(os.homedir(), ".ai-orc", "tools")
+const toolsDir = () => path.join(dataDir(), "tools")
 
 const SEGMENT = /^[A-Za-z0-9._-]+$/
 
@@ -38,6 +38,7 @@ export async function cloneAndAnalyze(githubUrl: string): Promise<RegistryAddRes
   // owner/repo passed parseGithubRepoUrl (letters, digits, . _ - only; never
   // "." or ".."), so they cannot climb out of TOOLS_DIR. The containment
   // check below is defense in depth.
+  const TOOLS_DIR = toolsDir()
   const clonePath = path.join(TOOLS_DIR, owner, repo) // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
   if (!clonePath.startsWith(TOOLS_DIR + path.sep)) throw new Error("Invalid GitHub URL")
 

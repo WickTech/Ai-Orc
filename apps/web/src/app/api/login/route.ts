@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server"
+import { apiToken } from "@/lib/paths"
 import { SESSION_COOKIE, sessionValue, tokensEqual } from "@/lib/security"
 
 const MAX_FAILURES = 10
 const WINDOW_MS = 60_000
 let failures: number[] = []
 
-/** Signs in with AI_ORC_TOKEN and sets an HttpOnly session cookie for the browser. */
+/** Signs in with AXION_TOKEN and sets an HttpOnly session cookie for the browser. */
 export async function POST(req: Request) {
-  const token = process.env.AI_ORC_TOKEN
-  if (!token) return NextResponse.json({ error: "Sign-in is not enabled: set AI_ORC_TOKEN" }, { status: 404 })
+  const token = apiToken()
+  if (!token) return NextResponse.json({ error: "Sign-in is not enabled: set AXION_TOKEN" }, { status: 404 })
 
   const now = Date.now()
   failures = failures.filter((t) => now - t < WINDOW_MS)

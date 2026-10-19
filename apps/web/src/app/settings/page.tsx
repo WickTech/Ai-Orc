@@ -142,7 +142,7 @@ export default function SettingsPage() {
                 <Plus className="h-3.5 w-3.5" /> Add repository
               </button>
               <p className="text-xs text-white/30">
-                Absolute path to a repository root. With a verify command set (program and arguments, no shell), a session can only be merged after that command passes in its worktree on the exact diff you approve. Each isolated session gets its own branch and worktree under ~/.ai-orc/worktrees; your checkout is never touched.
+                Absolute path to a repository root. With a verify command set (program and arguments, no shell), a session can only be merged after that command passes in its worktree on the exact diff you approve. Each isolated session gets its own branch and worktree under ~/.axion/worktrees; your checkout is never touched.
               </p>
             </div>
           </div>

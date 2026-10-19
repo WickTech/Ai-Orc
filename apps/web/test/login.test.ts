@@ -18,7 +18,7 @@ describe("POST /api/login", () => {
   })
 
   it("sets an HttpOnly SameSite=Strict cookie holding a derived value, never the token", async () => {
-    vi.stubEnv("AI_ORC_TOKEN", TOKEN)
+    vi.stubEnv("AXION_TOKEN", TOKEN)
     const { POST } = await load()
     const { sessionValue } = await import("@/lib/security")
     const res = await POST(post({ token: TOKEN }))
@@ -31,7 +31,7 @@ describe("POST /api/login", () => {
   })
 
   it("rejects wrong, missing and non-string tokens without a cookie", async () => {
-    vi.stubEnv("AI_ORC_TOKEN", TOKEN)
+    vi.stubEnv("AXION_TOKEN", TOKEN)
     const { POST } = await load()
     for (const body of [{ token: "wrong" }, {}, { token: 5 }, { token: "" }]) {
       const res = await POST(post(body))
@@ -42,7 +42,7 @@ describe("POST /api/login", () => {
   })
 
   it("throttles repeated failures, even for the right token afterwards", async () => {
-    vi.stubEnv("AI_ORC_TOKEN", TOKEN)
+    vi.stubEnv("AXION_TOKEN", TOKEN)
     const { POST } = await load()
     for (let i = 0; i < 10; i++) expect((await POST(post({ token: "wrong" }))).status).toBe(401)
     expect((await POST(post({ token: "wrong" }))).status).toBe(429)

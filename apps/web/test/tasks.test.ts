@@ -56,7 +56,7 @@ describe("tasks", () => {
 
   it("treats a corrupt file as empty and keeps only well-formed entries", async () => {
     const { tasks, home } = await setup()
-    const file = path.join(home, ".ai-orc", "tasks.json")
+    const file = path.join(home, ".axion", "tasks.json")
     await tasks.createTask({ title: "first" })
     writeFileSync(file, "{broken")
     expect(await tasks.listTasks()).toEqual([])
@@ -95,6 +95,6 @@ describe("/api/tasks", () => {
     expect(res.status).toBe(201)
     expect((await res.json()).task.repoId).toBe(repoId)
     expect(existsSync(dir)).toBe(true)
-    expect(readFileSync(path.join(process.env.HOME ?? "", ".ai-orc", "tasks.json"), "utf-8")).toContain(repoId)
+    expect(readFileSync(path.join(process.env.HOME ?? "", ".axion", "tasks.json"), "utf-8")).toContain(repoId)
   })
 })

@@ -23,14 +23,14 @@
 
 ## Isolated worktree sessions
 
-Add git repositories under **Settings → Repositories**, then pick one in the **Isolated worktree** dropdown when launching a tool. The session runs in its own `git worktree` on a new `axion/<tool>-<session>` branch under `~/.ai-orc/worktrees/`, so two agents can edit the same repo without touching each other or your checkout.
+Add git repositories under **Settings → Repositories**, then pick one in the **Isolated worktree** dropdown when launching a tool. The session runs in its own `git worktree` on a new `axion/<tool>-<session>` branch under `~/.axion/worktrees/`, so two agents can edit the same repo without touching each other or your checkout.
 
 - Refuses to start when the repository has uncommitted changes to tracked files (they would not appear in the worktree). Untracked files are ignored.
 - The browser never sends a path: the WebSocket message carries a repo id, and the server only honours ids of repos in your saved config. Each repo must be an existing git repository root and not `/` or your home folder.
 - Worktrees and branches are kept after a session ends. The **Worktrees** page shows branch, uncommitted changes and commit count, and removes one (deleting its branch). Removing one with uncommitted or unmerged work needs an explicit confirmation.
 - Restarting a terminal reuses its worktree.
 - **Review and approval:** the Worktrees page has a **Review** button showing the changed files and the full diff (new files included). **Approve & merge** commits the session's work and merges it into the branch checked out in the main repo with a merge commit (`--no-ff`). Approval is bound to the exact diff you reviewed: if the agent changes anything afterwards, the merge is refused and you must review again. It also refuses a dirty main checkout, a detached HEAD, an empty diff, and a conflicting merge (which is aborted, leaving main clean and the session intact). After a successful merge the session worktree and branch are removed. Nothing merges without this explicit approval.
-- **Audit log:** merges, refused merges, rejections and removals are appended as JSON lines to `~/.ai-orc/audit.log` (newest 20 shown on the Worktrees page, `GET /api/audit`). Your repository's own git hooks run on the commit and merge, as they would for you.
+- **Audit log:** merges, refused merges, rejections and removals are appended as JSON lines to `~/.axion/audit.log` (newest 20 shown on the Worktrees page, `GET /api/audit`). Your repository's own git hooks run on the commit and merge, as they would for you.
 - **Verify before merge (optional):** set a verify command per repository in Settings (a program and arguments, run without a shell inside the session worktree, 5 minute limit, e.g. `npm test`). A session can then only be approved after that command passed on the exact diff you are merging; any later change invalidates the result. Runs and failures are in the audit log (`verified`, `verify-failed`).
 - **Loop warning:** if a terminal prints the same line (or the same few lines) over and over, the panel shows a dismissable warning so you can stop a stuck agent. It is advisory and never stops the session by itself.
 - All git calls use argument arrays without a shell.
@@ -39,7 +39,7 @@ Add git repositories under **Settings → Repositories**, then pick one in the *
 
 ## Adding an agent adapter
 
-Built-in tools are agent adapters in `packages/agents`. To support a new CLI, add `packages/agents/src/adapters/<name>.ts` exporting an `AgentAdapter` (id, label, bare `command`, `args`, `installHint`, `capabilities`, optional `headlessArgs`) and list it in `packages/agents/src/registry.ts`. Commands must be bare executable names (no paths or spaces); the registry rejects anything else. Existing installs pick up new built-ins automatically because built-ins are not stored in `~/.ai-orc/db.json`.
+Built-in tools are agent adapters in `packages/agents`. To support a new CLI, add `packages/agents/src/adapters/<name>.ts` exporting an `AgentAdapter` (id, label, bare `command`, `args`, `installHint`, `capabilities`, optional `headlessArgs`) and list it in `packages/agents/src/registry.ts`. Commands must be bare executable names (no paths or spaces); the registry rejects anything else. Existing installs pick up new built-ins automatically because built-ins are not stored in `~/.axion/db.json`.
 
 ---
 
@@ -101,7 +101,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 1. Go to **Registry**
 2. Paste any GitHub URL: `https://github.com/owner/repo`
-3. Axion clones the repo to `~/.ai-orc/tools/owner/repo`
+3. Axion clones the repo to `~/.axion/tools/owner/repo`
 4. Install steps are extracted from the README — copy and run them
 5. The tool is saved to your registry and appears on the Dashboard
 
@@ -136,7 +136,7 @@ apps/web/
 │   │   ├── pty.ts         # node-pty process manager
 │   │   ├── vault.ts       # Obsidian vault file ops + chokidar watcher
 │   │   ├── registry.ts    # git clone + README parser
-│   │   └── db.ts          # JSON config at ~/.ai-orc/db.json
+│   │   └── db.ts          # JSON config at ~/.axion/db.json
 │   ├── providers/         # WebSocketProvider (client-side WS singleton)
 │   ├── hooks/             # useTerminal (xterm.js init + WS attach)
 │   └── store/             # Zustand state (tools, terminals, active tab)
@@ -158,11 +158,11 @@ Axion starts terminals and merges agent work into your repositories, so it is lo
 
 It is **not** a sandbox and has no login: agents run with your privileges, and any local process can reach the port. Read [SECURITY.md](SECURITY.md) for the full threat model, what is and is not protected, the safe-use checklist and how to report a vulnerability.
 
-Set `AI_ORC_TOKEN` to require sign-in (at `/login`) for every API request and for the terminal WebSocket; without it, any local process can reach the port. Scripts use the token as a bearer:
+Set `AXION_TOKEN` to require sign-in (at `/login`) for every API request and for the terminal WebSocket; without it, any local process can reach the port. Scripts use the token as a bearer:
 
 ```bash
-AI_ORC_TOKEN=$(openssl rand -hex 24) npm run dev
-curl -X PUT http://127.0.0.1:3000/api/config -H "Authorization: Bearer $AI_ORC_TOKEN" \
+AXION_TOKEN=$(openssl rand -hex 24) npm run dev
+curl -X PUT http://127.0.0.1:3000/api/config -H "Authorization: Bearer $AXION_TOKEN" \
      -H 'Content-Type: application/json' -d '{"port":3000}'
 ```
 
@@ -170,7 +170,9 @@ Open the app via `localhost` or `127.0.0.1`; other host names get `403 Invalid h
 
 ## Local config
 
-All state lives at `~/.ai-orc/db.json` — never committed to git.
+All state lives at `~/.axion/db.json` — never committed to git.
+
+**Upgrading from AI-Orc:** if `~/.ai-orc` exists and `~/.axion` does not, Axion keeps using `~/.ai-orc` (git stores the absolute path of every session worktree, so moving it under live sessions would break them). To switch: finish or remove your sessions, quit Axion, `mv ~/.ai-orc ~/.axion`, and run `git worktree repair` in each repository that still lists a session. The old `AI_ORC_TOKEN` variable still works as a fallback for `AXION_TOKEN`.
 
 ```json
 {
