@@ -149,6 +149,28 @@ describe("approveMerge", () => {
     expect(existsSync(path.join(repo, "new.txt"))).toBe(false)
   })
 
+  it("refuses before committing when an untracked file in main would be overwritten", async () => {
+    const { review, repo, info } = await setup()
+    writeFileSync(path.join(info.path, "clash.txt"), "from session\n")
+    const r = await review.getReview(repo, "s1")
+    writeFileSync(path.join(repo, "clash.txt"), "mine\n")
+    await expect(review.approveMerge(repo, "s1", { diffHash: r.diffHash })).rejects.toThrow(/Untracked files .*clash\.txt/)
+    expect(readFileSync(path.join(repo, "clash.txt"), "utf-8")).toBe("mine\n")
+    expect(git(info.path, "status", "--porcelain")).toContain("clash.txt") // session not committed
+    const audit = await import("@/lib/audit")
+    expect((await audit.readAudit(1))[0].action).toBe("merge-refused")
+  })
+
+  it("is not blocked by an unrelated untracked file in main", async () => {
+    const { review, repo, info } = await setup()
+    writeFileSync(path.join(info.path, "new.txt"), "x\n")
+    const r = await review.getReview(repo, "s1")
+    writeFileSync(path.join(repo, "notes.txt"), "mine\n")
+    await review.approveMerge(repo, "s1", { diffHash: r.diffHash })
+    expect(existsSync(path.join(repo, "new.txt"))).toBe(true)
+    expect(existsSync(path.join(repo, "notes.txt"))).toBe(true)
+  })
+
   it("refuses when the repository is on a detached HEAD", async () => {
     const { review, repo, info } = await setup()
     writeFileSync(path.join(info.path, "new.txt"), "x\n")
