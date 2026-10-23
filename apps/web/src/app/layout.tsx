@@ -1,10 +1,11 @@
 import type { Metadata } from "next"
-import { Geist_Mono } from "next/font/google"
+import { Geist, Geist_Mono } from "next/font/google"
 import "./globals.css"
 import { AppShell } from "@/components/layout/AppShell"
 import { WebSocketProvider } from "@/providers/WebSocketProvider"
 
-const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" })
+const geistSans = Geist({ subsets: ["latin"], variable: "--font-geist-sans" })
+const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono" })
 
 export const metadata: Metadata = {
   title: "Axion — agent mission control",
@@ -13,8 +14,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="h-full" suppressHydrationWarning>
-      <body className={`${geistMono.variable} h-full antialiased bg-[#0d1117]`}>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full`} suppressHydrationWarning>
+      <body className="h-full antialiased bg-[#0d1117]">
         <WebSocketProvider>
           <AppShell>{children}</AppShell>
         </WebSocketProvider>
