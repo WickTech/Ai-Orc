@@ -6,6 +6,10 @@
 [![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)](https://typescriptlang.org)
 
+![Axion Worktrees page: two agent sessions, with the diff review for one of them open](docs/review.png)
+
+<sub>Two isolated agent sessions on a demo repository, with the diff review open: nothing merges until you approve the exact diff you reviewed.</sub>
+
 ---
 
 ## What it does
